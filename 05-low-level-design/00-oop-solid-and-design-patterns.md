@@ -92,3 +92,8 @@ classDiagram
 | [Vending machine](05-vending-machine.md) | State |
 | [Movie ticket booking (BookMyShow)](06-movie-ticket-booking.md) | Seat locking, Observer, Strategy |
 | [In-memory rate limiter](07-rate-limiter-class.md) | Strategy, thread safety |
+| [Chess game](08-chess-game.md) | Polymorphism, Command (undo), players outside the rules |
+| [In-memory file system](09-in-memory-file-system.md) | Composite, Strategy for find |
+| [In-memory key-value store with transactions](10-in-memory-kv-store-with-transactions.md) | Layered transactions, tombstones |
+| [Logging framework](11-logging-framework.md) | Strategy, Decorator, bounded async queue |
+| [Tic-tac-toe](12-tic-tac-toe.md) | O(1) win detection, undo stack |

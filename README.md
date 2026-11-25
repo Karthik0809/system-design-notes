@@ -1,6 +1,6 @@
 # System Design Notes
 
-Notes I use to prepare for system design interviews: the core concepts, reusable patterns, 68 worked problems, a low-level design section, and a bank of practice questions with answers.
+Notes I use to prepare for system design interviews: a guided course built around one growing app, the core concepts, reusable patterns, 83 worked problems, front-end and object-oriented design sections, and a bank of practice questions with answers.
 
 Every problem uses the same layout so it is quick to revise:
 
@@ -14,21 +14,26 @@ Diagrams are written in [Mermaid](https://mermaid.js.org/), so GitHub renders th
 
 | Folder | What is inside |
 |---|---|
+| [00-course](00-course/README.md) | A 20-chapter guided course: grow one app (Crumb) from one server to two regions, one incident at a time, plus mock interviews |
 | [01-fundamentals](01-fundamentals/) | 35 notes on the concepts every design builds on |
 | [02-patterns](02-patterns/README.md) | 24 reusable design patterns, each with a diagram and examples |
-| [03-problems](03-problems/) | 68 high-level design problems, worked end to end |
+| [03-problems](03-problems/) | 83 high-level design problems, worked end to end |
 | [04-interview-questions](04-interview-questions/) | Concept Q&A, scenario questions, estimation drills, quick designs |
-| [05-low-level-design](05-low-level-design/) | OOP, SOLID, design patterns and 7 class-design problems with code |
+| [05-low-level-design](05-low-level-design/) | OOP, SOLID, design patterns and 12 class-design problems with code |
+| [06-front-end-design](06-front-end-design/) | How front-end design rounds work and 12 front-end problems |
 
 ```mermaid
 flowchart LR
-    A["Fundamentals"] --> B["Patterns"] --> C["Problems"] --> D["Practice questions"]
+    Z["Course (Crumb)"] --> A["Fundamentals"]
+    A --> B["Patterns"] --> C["Problems"] --> D["Practice questions"]
     D -.->|"go back to weak topics"| A
 ```
 
 ---
 
 ## Study plan (4 weeks)
+
+New to system design? Start with the [Crumb course](00-course/README.md): it introduces the same ideas through one app, in order. Then use this plan.
 
 | Week | Focus | Material |
 |---|---|---|
@@ -37,7 +42,7 @@ flowchart LR
 | 3 | Classic problems | URL shortener, rate limiter, news feed, chat, YouTube, Google Drive, Uber, Ticketmaster, payments |
 | 4 | Breadth and mocks | Remaining problems by category, [scenario questions](04-interview-questions/02-scenario-questions.md), timed 45-minute mocks |
 
-Front-end rounds: add fundamentals 33-34 (front-end performance and state).
+Front-end rounds: fundamentals 33-34, then the [front-end design section](06-front-end-design/00-front-end-interview-framework.md).
 
 Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-and-problem-patterns.md), the [framework](01-fundamentals/23-interview-framework.md) and the [patterns](02-patterns/README.md), then pick problems from your target company's domain.
 
@@ -107,6 +112,9 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 | 59 | [Domain Name System (DNS)](03-problems/59-dns.md) | Medium | hierarchical delegation, caching with TTL, anycast, replication of authoritative zones, eventual consistency |
 | 61 | [Distributed File System (GFS / HDFS)](03-problems/61-distributed-file-system.md) | Hard | single metadata master, large chunks, chunk replication, leases, pipelined writes, rack awareness |
 | 63 | [API Gateway](03-problems/63-api-gateway.md) | Medium | request pipeline of filters, route table, auth offload, rate limiting, config push, stateless data plane |
+| 78 | [Authentication Service (SSO across web and mobile)](03-problems/78-authentication-service.md) | Medium | OIDC authorization code + PKCE, short-lived signed access tokens, rotating refresh tokens, JWKS for local verification, session revocation within minutes, MFA |
+| 79 | [Load Balancer (L4 and L7)](03-problems/79-load-balancer.md) | Hard | ECMP + anycast in front of an L4 tier, consistent hashing for connection affinity, L7 proxies for HTTP routing, health checks, connection draining, no single point of failure |
+| 80 | [Permissions Service (Google Zanzibar style)](03-problems/80-permissions-service.md) | Hard | relationship tuples, namespace configs with inheritance rules, graph evaluation with caching, consistency tokens to avoid stale checks, reverse index for "list what I can see" |
 
 ### Read-heavy lookups
 
@@ -124,6 +132,7 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 | 26 | [Twitter (X)](03-problems/26-twitter.md) | Hard | hybrid fan-out, timeline cache, Snowflake IDs, trends via stream processing |
 | 27 | [Instagram](03-problems/27-instagram.md) | Hard | pre-signed uploads, async media pipeline, CDN, ranked feed, TTL stories |
 | 49 | [Reddit (Communities, Voting, Nested Comments)](03-problems/49-reddit.md) | Medium | vote counters, time-decay ranking (hot score), precomputed listings, nested comment trees, caching |
+| 69 | [News Aggregator (Google News)](03-problems/69-news-aggregator.md) | Medium | feed polling with per-publisher schedules, near-duplicate clustering into stories, freshness-weighted ranking, cached personalized front pages |
 | 22 | [Real-Time Gaming Leaderboard](03-problems/22-gaming-leaderboard.md) | Medium | Redis sorted sets (skip lists), periodic keys for resets, sharding by score range vs hash, persistence for recovery |
 | 34 | [Top-K Heavy Hitters (Trending)](03-problems/34-top-k-heavy-hitters.md) | Hard | partition by key, local top-K + merge, Count-Min Sketch, time buckets, lambda architecture |
 | 42 | [Distributed Counter (Likes / Views)](03-problems/42-distributed-counter.md) | Medium | row contention, Redis INCR, sharded counters, batched stream aggregation, CRDT counters |
@@ -140,6 +149,10 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 | 35 | [Google Docs (Collaborative Editing)](03-problems/35-google-docs.md) | Very hard | OT vs CRDT, per-document sequencer, WebSockets, op log + snapshots, presence |
 | 39 | [Video Conferencing (Zoom / Meet)](03-problems/39-video-conferencing.md) | Very hard | WebRTC, SFU with simulcast, signaling, STUN/TURN, congestion control |
 | 66 | [Multiplayer Game Backend (Matchmaking and Game Servers)](03-problems/66-multiplayer-game-backend.md) | Hard | matchmaking queues by skill and region, dedicated authoritative game servers, UDP tick updates, fleet allocation, persistence of results |
+| 72 | [Live Comments (Facebook Live / YouTube Live chat)](03-problems/72-live-comments.md) | Medium | write path to a durable store, pub/sub per video, fan-out tree of edge servers, sampling and rate capping for huge streams, batching pushes |
+| 73 | [Online Chess Platform (chess.com / lichess)](03-problems/73-online-chess.md) | Medium | rating-based matchmaking, game server owns state and clocks, WebSocket move relay, server-side move validation, durable move log |
+| 74 | [Online Presence Service (green dots)](03-problems/74-presence-service.md) | Medium | heartbeats with TTL, presence store sharded by user, publish only status changes, subscribe-on-view instead of broadcasting to all contacts, debouncing flaps |
+| 75 | [Collaborative Whiteboard (Miro / FigJam)](03-problems/75-collaborative-whiteboard.md) | Hard | shapes as objects with per-property last-writer-wins, room server per board, op log + snapshots, ephemeral cursor channel, viewport-based loading for infinite canvas |
 
 ### Media and content delivery
 
@@ -151,6 +164,9 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 | 48 | [Spotify (Music Streaming)](03-problems/48-spotify.md) | Medium | CDN for audio, small-file streaming, offline downloads with DRM, playlist service, play-event pipeline |
 | 12 | [Google Drive / Dropbox (File Storage & Sync)](03-problems/12-google-drive.md) | Hard | block-level chunking, content-addressable dedupe, strongly-consistent metadata, change notifications (long polling), versioning |
 | 67 | [Google Photos (Backup, Search by Content, Sharing)](03-problems/67-google-photos.md) | Hard | resumable uploads, content-hash dedupe, thumbnail pipeline, ML labeling and embeddings, per-user search index, tiered storage |
+| 81 | [Image Hosting Service (Imgur)](03-problems/81-image-hosting.md) | Easy | direct uploads, safe processing of untrusted files, on-the-fly resizing at the edge, CDN with immutable URLs, abuse and moderation pipeline, cost control |
+| 82 | [Short Video App (TikTok)](03-problems/82-tiktok.md) | Hard | upload and transcode pipeline, For You feed from a recommendation engine, aggressive prefetch for instant start, real-time interest signals, cold-start exposure for new videos |
+| 83 | [Video Transcoding Pipeline](03-problems/83-video-transcoding-pipeline.md) | Hard | split into GOP-aligned chunks, parallel encode tasks, DAG workflow, idempotent retries, priority queues and fair share, cheap spot capacity with checkpointing |
 
 ### Geo and location
 
@@ -180,6 +196,7 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 | 25 | [Stock Exchange (matching engine)](03-problems/25-stock-exchange.md) | Very hard | order book, price-time priority matching, sequencer, deterministic replay, single-threaded hot path, mmap event store |
 | 54 | [Price Alert System (stock / crypto / flight price alerts)](03-problems/54-price-alerts.md) | Medium | inverted matching (price -> alerts), sorted thresholds per symbol, stream processing, dedupe & idempotent notifications |
 | 55 | [Real-Time Fraud Detection System (payments)](03-problems/55-fraud-detection.md) | Hard | synchronous risk scoring with tight latency budget, real-time features from streams, rules + ML, feedback loops, case management |
+| 70 | [Personal Finance App (Mint)](03-problems/70-personal-finance-app.md) | Medium | bank connections via aggregators, scheduled incremental sync, idempotent transaction import, categorization (rules + ML), budgets as materialized aggregates, strong security |
 
 ### Data pipelines, analytics and observability
 
@@ -190,6 +207,7 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 | 41 | [Distributed Logging System](03-problems/41-distributed-logging.md) | Hard | agents with disk buffers, Kafka shock absorber, hot/cold tiers, indexing trade-offs |
 | 56 | [Distributed Tracing System (Jaeger / Zipkin / Dapper)](03-problems/56-distributed-tracing.md) | Hard | context propagation, spans, head vs tail sampling, collectors + Kafka, trace storage by trace ID |
 | 68 | [Web Analytics Platform (Google Analytics)](03-problems/68-web-analytics.md) | Medium-Hard | lightweight tracking beacons, edge collectors, Kafka, sessionization with session windows, columnar OLAP store, HyperLogLog for uniques |
+| 77 | [Time-Series Database (device telemetry)](03-problems/77-time-series-database.md) | Hard | series ID + time partitioning, in-memory head block with WAL, columnar compressed blocks (delta-of-delta, XOR), out-of-order and late data, downsampling, label index |
 
 ### Jobs, notifications and delivery
 
@@ -209,9 +227,11 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 | # | Problem | Difficulty | Key ideas |
 |---|---|---|---|
 | 36 | [Web Search Engine](03-problems/36-web-search-engine.md) | Very hard | inverted index, document-partitioned shards, scatter-gather, two-stage ranking, hedged requests |
+| 71 | [Post Search (Twitter Search)](03-problems/71-post-search.md) | Hard | real-time inverted index, time-partitioned tiers, in-memory recent index, scatter-gather with early termination, ranking by recency + engagement |
 | 43 | [Recommendation System](03-problems/43-recommendation-system.md) | Hard | candidate generation, ranking, feature store, ANN retrieval, A/B testing, cold start |
 | 57 | [Ad Serving / Real-Time Bidding System](03-problems/57-ad-serving-rtb.md) | Very hard | strict latency budgets, candidate retrieval + ranking, second-price/first-price auction, budget pacing, event aggregation |
 | 45 | [LLM Chat Service (ChatGPT-like)](03-problems/45-llm-chat-service.md) | Very hard | continuous batching, KV cache, prefix caching, SSE streaming, token rate limits, RAG |
+| 76 | [Document Q&A with RAG (Glean / ChatGPT over company docs)](03-problems/76-rag-document-qa.md) | Medium | connectors and incremental ingestion, chunking and embeddings, hybrid retrieval (BM25 + vectors), permission filtering at query time, re-ranking, grounded answers with citations |
 | 53 | [Feature Flag / Remote Config Service (LaunchDarkly-like)](03-problems/53-feature-flags.md) | Medium | local evaluation in SDKs, streaming config updates, consistent percentage rollouts via hashing, audit log, fail-safe defaults |
 
 ---
@@ -234,6 +254,55 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 - [LLD 05 · Vending Machine](05-low-level-design/05-vending-machine.md)
 - [LLD 06 · Movie Ticket Booking (BookMyShow)](05-low-level-design/06-movie-ticket-booking.md)
 - [LLD 07 · In-Memory Rate Limiter (class design)](05-low-level-design/07-rate-limiter-class.md)
+- [LLD 08 · Chess Game](05-low-level-design/08-chess-game.md)
+- [LLD 09 · In-Memory File System](05-low-level-design/09-in-memory-file-system.md)
+- [LLD 10 · In-Memory Key-Value Store with Nested Transactions](05-low-level-design/10-in-memory-kv-store-with-transactions.md)
+- [LLD 11 · Logging Framework](05-low-level-design/11-logging-framework.md)
+- [LLD 12 · Tic-Tac-Toe (N x N)](05-low-level-design/12-tic-tac-toe.md)
+
+---
+
+## 6. Front-end design
+
+- [Front-End System Design: How the Round Works](06-front-end-design/00-front-end-interview-framework.md)
+- [FE 01 · Autocomplete Component](06-front-end-design/01-autocomplete-component.md)
+- [FE 02 · Chat App (front end)](06-front-end-design/02-chat-app-ui.md)
+- [FE 03 · Chat Assistant UI (ChatGPT front end)](06-front-end-design/03-chatgpt-ui.md)
+- [FE 04 · Data Table Component](06-front-end-design/04-data-table.md)
+- [FE 05 · Collaborative Document Editor (front end)](06-front-end-design/05-docs-editor-ui.md)
+- [FE 06 · E-commerce Site (front end)](06-front-end-design/06-ecommerce-ui.md)
+- [FE 07 · Image Carousel Component](06-front-end-design/07-image-carousel.md)
+- [FE 08 · Kanban Board (Trello / Jira)](06-front-end-design/08-kanban-board.md)
+- [FE 09 · News Feed (front end)](06-front-end-design/09-news-feed-ui.md)
+- [FE 10 · Photo Sharing App (front end)](06-front-end-design/10-photo-sharing-ui.md)
+- [FE 11 · Spreadsheet (Google Sheets front end)](06-front-end-design/11-spreadsheet-ui.md)
+- [FE 12 · Video Streaming Site (front end)](06-front-end-design/12-video-streaming-ui.md)
+
+---
+
+## The Crumb course
+
+- [Chapter 1 · One Box Runs Everything](00-course/01-one-box.md)
+- [Chapter 2 · The Second Server Can't See the Data](00-course/02-separate-the-database.md)
+- [Chapter 3 · A Food Blogger Shares Crumb](00-course/03-load-balancer-and-stateless.md)
+- [Chapter 4 · The Database Answers the Same Question 10,000 Times a Second](00-course/04-caching.md)
+- [Chapter 5 · Cache Misses Still Drown the Database](00-course/05-read-replicas.md)
+- [Chapter 6 · Photos Crawl for Users in Australia](00-course/06-object-storage-and-cdn.md)
+- [Chapter 7 · Two Recipes Get the Same ID](00-course/07-unique-ids.md)
+- [Chapter 8 · Search Takes 6 Seconds](00-course/08-indexes-and-search.md)
+- [Chapter 9 · The Comments Table Fills the Disk](00-course/09-sharding.md)
+- [Chapter 10 · Uploading a Recipe Takes 9 Seconds](00-course/10-queues-and-workers.md)
+- [Chapter 11 · The Push Provider Goes Down and Takes the Workers With It](00-course/11-retries-and-idempotency.md)
+- [Chapter 12 · Cooks Want Views per Recipe per Day](00-course/12-event-streams-and-counting.md)
+- [Chapter 13 · The Home Feed Query Times Out](00-course/13-feed-fan-out.md)
+- [Chapter 14 · Live Cook-Along Comments Lag by 20 Seconds](00-course/14-real-time-and-pub-sub.md)
+- [Chapter 15 · The Database Primary Dies at 2 a.m.](00-course/15-failover-and-monitoring.md)
+- [Chapter 16 · A Scraper Sends 5,000 Requests a Second](00-course/16-rate-limiting-and-back-pressure.md)
+- [Chapter 17 · The Whole Region Goes Dark](00-course/17-multi-region.md)
+- [Chapter 18 · "How Much Storage for Five Years?"](00-course/18-estimation-out-loud.md)
+- [Chapter 19 · "What Does That Choice Cost You?"](00-course/19-defending-choices.md)
+- [Chapter 20 · Half the Design Is Missing at Minute 45](00-course/20-running-the-clock.md)
+- [Capstone · Three Timed Mock Interviews](00-course/21-capstone-mocks.md)
 
 ---
 

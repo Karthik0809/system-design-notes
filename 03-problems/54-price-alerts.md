@@ -63,4 +63,27 @@ A: Conditional status transition ACTIVE -> TRIGGERED and idempotency keys in the
 
 ---
 
+---
+
+## Variant: tracking prices on online stores (CamelCamelCamel, Honey)
+
+Here there is no market data feed. You have to **fetch** product pages or store APIs yourself, and each store limits how often you may ask.
+
+```mermaid
+flowchart LR
+    W["Watch list: product to watchers + targets"] --> PR["Prioritizer: how often to check each product"]
+    PR --> SQ["Per-store queues with request budgets (token bucket per store)"]
+    SQ --> FE["Fetchers (store APIs first, page scraping as fallback)"]
+    FE --> PX["Price extractor + validation"]
+    PX --> HIST[("Price history")]
+    PX -->|"price changed"| MATCH["Matcher: watchers whose target is now met"]
+    MATCH --> NQ["Notification queue (dedupe per watcher + drop)"] --> N["Email / push"]
+```
+
+- **Spend the budget where it matters:** check products with many watchers, volatile prices or targets close to the current price more often; check quiet products daily.
+- **Per-store budget:** a token bucket per store so you never exceed its allowed request rate; spread requests evenly through the day.
+- **Coalesce watchers:** one fetch per product, no matter how many people watch it.
+- **Alert once:** record `(watcher, product, price drop event)`; re-arm only after the price goes back above the target.
+- **Bad data:** reject obviously wrong prices (parsing errors, $0.01 glitches) by comparing to history before alerting.
+
 **Related:** [Stock exchange](25-stock-exchange.md) · [Notification system](07-notification-system.md) · [Message queues](../01-fundamentals/11-message-queues-pub-sub-and-event-streaming.md)

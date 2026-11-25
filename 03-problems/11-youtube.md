@@ -124,4 +124,10 @@ A: Real-time encoding, latency budget of seconds, RTMP/SRT ingest - see [Live st
 
 ---
 
+---
+
+## Transcoding at scale
+
+The transcoding step deserves its own design when interviewers push on it: chunking at keyframes, a DAG per job, idempotent retries, priority queues so short videos aren't stuck behind long ones, and running most encoding on cheap preemptible machines. See [Video transcoding pipeline](83-video-transcoding-pipeline.md).
+
 **Related:** [Netflix](46-netflix.md) · [Instagram](27-instagram.md) · [Storage systems](../01-fundamentals/16-storage-systems-block-file-object-oltp-vs-olap.md) · [CDN design](52-cdn.md)

@@ -112,3 +112,10 @@ A: CDN edges with request coalescing - each edge fetches a segment once and serv
 
 **Q: How do you cut latency to ~2 s?**
 A: LL-HLS/CMAF chunks, smaller player buffers; WebRTC for sub-second at higher cost.
+
+---
+
+## When chat is too fast to read
+
+On huge streams the chat rate exceeds what viewers can read. Cap the displayed rate per stream and **sample** (prioritize moderators, subscribers, the viewer's friends and highly-reacted messages), batch pushes every few hundred milliseconds, and aggregate reactions into counts. The full design is in [Live comments](72-live-comments.md).
+
