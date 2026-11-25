@@ -1,15 +1,17 @@
 # 16 · Design a Distributed Message Queue (Kafka-like)
 
-> **Category:** Infrastructure · **Difficulty:** ⭐⭐⭐⭐⭐ · **Patterns:** partitioned append-only logs, segment files, leader/follower replication with ISR, consumer groups & offsets, batching
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Infrastructure | Very hard | partitioned append-only logs, segment files, leader/follower replication with ISR, consumer groups & offsets, batching |
 
 ---
 
-## 1. TL;DR
+## Summary
 Topics are split into **partitions**; each partition is an **append-only log** stored as segment files on a broker and **replicated** (one leader, followers; in-sync replicas = ISR). Producers batch and route by key; consumers **pull** in **consumer groups** where each partition is read by one consumer, and progress is tracked by committed **offsets**. Messages are retained by time/size (not deleted on read), so they can be replayed.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Produce / consume messages, repeated consumption | High throughput **or** low latency (configurable) |
@@ -18,7 +20,7 @@ Topics are split into **partitions**; each partition is an **append-only log** s
 
 ---
 
-## 3. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -37,7 +39,7 @@ flowchart LR
 
 ---
 
-## 4. Storage: why an append-only log?
+## Storage: why an append-only log?
 - Sequential disk writes are fast (hundreds of MB/s); random access is avoided.
 - Partition = sequence of **segment files**; only the active segment receives appends; old segments deleted by retention.
 - Message record: `key, value, offset, timestamp, size, crc`.
@@ -45,7 +47,7 @@ flowchart LR
 
 ---
 
-## 5. Producer flow
+## Producer flow
 Producer library buffers messages, routes `partition = hash(key) % N` (or round robin if no key), **batches** per partition (bigger batch = throughput, smaller = latency), compresses, sends to the partition leader.
 
 ### Durability via acks
@@ -58,7 +60,7 @@ flowchart LR
 
 ---
 
-## 6. Consumer flow
+## Consumer flow
 - **Pull** model: consumers control pace, can batch, replay; long-poll to avoid busy loops.
 - **Consumer group:** partitions divided among members; parallelism ≤ number of partitions.
 - **Rebalancing:** a **coordinator** broker tracks heartbeats; on join/leave/crash, it reassigns partitions.
@@ -80,21 +82,21 @@ sequenceDiagram
 | Mode | Commit timing | Risk |
 |---|---|---|
 | At-most-once | Commit before processing | Loss on crash |
-| **At-least-once** | Commit after processing | Duplicates → idempotent consumers |
+| **At-least-once** | Commit after processing | Duplicates -> idempotent consumers |
 | Exactly-once | Idempotent producer + transactions | Complexity, cost |
 
 ---
 
-## 7. Replication
+## Replication
 - Each partition has `replication_factor` replicas on different brokers/racks.
 - Followers pull from the leader; replicas caught up within a lag threshold form the **ISR**.
 - Commit point = highest offset replicated to all ISR ("high watermark"); consumers only see committed messages.
-- Leader failure → controller elects a new leader from the ISR.
+- Leader failure -> controller elects a new leader from the ISR.
 
 ---
 
-## 8. Other features
-- **Scalability:** add partitions (only for new data; key→partition mapping changes), add brokers and move replicas.
+## Other features
+- **Scalability:** add partitions (only for new data; key->partition mapping changes), add brokers and move replicas.
 - **Delayed / scheduled messages:** temporary storage + timing wheel / per-delay topics.
 - **Filtering / tags:** metadata tags so consumers subscribe to subsets.
 - **Log compaction:** keep only the latest value per key (changelogs, state).
@@ -102,14 +104,18 @@ sequenceDiagram
 
 ---
 
-## 9. Interview Q&A
-**Q: How do you guarantee ordering?** Only within a partition — route related messages with the same key.
+## Interview Q&A
+**Q: How do you guarantee ordering?**
+A: Only within a partition - route related messages with the same key.
 
-**Q: Why pull instead of push?** Consumers set their own rate, batch efficiently, and replay; push risks overwhelming slow consumers.
+**Q: Why pull instead of push?**
+A: Consumers set their own rate, batch efficiently, and replay; push risks overwhelming slow consumers.
 
-**Q: What's the trade-off of more partitions?** More parallelism, but more open files, longer leader elections, more rebalancing overhead.
+**Q: What's the trade-off of more partitions?**
+A: More parallelism, but more open files, longer leader elections, more rebalancing overhead.
 
-**Q: How to tune for low latency vs throughput?** Small batches/`linger.ms`, `acks=1` for latency; big batches, compression, `acks=all` for throughput+durability.
+**Q: How to tune for low latency vs throughput?**
+A: Small batches/`linger.ms`, `acks=1` for latency; big batches, compression, `acks=all` for throughput+durability.
 
 ---
 

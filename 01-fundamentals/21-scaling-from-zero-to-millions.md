@@ -1,6 +1,6 @@
 # Scaling from Zero to Millions of Users
 
-> How a system evolves step by step. In interviews, this is the mental model behind "how would you scale this?".
+How a system evolves step by step. In interviews, this is the mental model behind "how would you scale this?".
 
 ---
 
@@ -22,13 +22,13 @@ flowchart LR
 
 ---
 
-## Step 1 — Single server
+## Step 1 - Single server
 DNS resolves the domain to one server running web app + DB. Fine for prototypes; single point of failure.
 
-## Step 2 — Separate the database
+## Step 2 - Separate the database
 Web tier and data tier scale independently. Choose a DB by access pattern (see [Databases](04-databases-sql-vs-nosql-acid-indexing.md)).
 
-## Step 3 — Load balancer + horizontal scaling
+## Step 3 - Load balancer + horizontal scaling
 ```mermaid
 flowchart LR
     U["Users"] --> LB["Load balancer (public IP)"]
@@ -38,7 +38,7 @@ flowchart LR
 ```
 Vertical scaling hits a ceiling and has no redundancy; horizontal scaling adds servers behind an LB. If one server dies, traffic goes to the others. See [Load balancing](03-load-balancing.md).
 
-## Step 4 — Database replication
+## Step 4 - Database replication
 ```mermaid
 flowchart LR
     W["Web servers"] -->|"writes"| P[("Primary")]
@@ -49,28 +49,28 @@ flowchart LR
 ```
 Reads usually dominate, so add replicas. If a replica dies, reads go elsewhere; if the primary dies, promote a replica. Watch replication lag. See [Replication](05-replication.md).
 
-## Step 5 — Cache and CDN
+## Step 5 - Cache and CDN
 - **Cache** (Redis/Memcached) for frequently read, rarely changed data; set TTLs, handle invalidation and eviction. See [Caching](07-caching-deep-dive.md).
 - **CDN** for static assets and media close to users; version file names for invalidation. See [CDN design](../03-problems/52-cdn.md).
 
-## Step 6 — Stateless web tier
+## Step 6 - Stateless web tier
 ```mermaid
 flowchart LR
     U["Users"] --> LB["LB"] --> W1["Web 1"] & W2["Web 2"] & W3["Web 3 (autoscaled)"]
     W1 & W2 & W3 --> SS[("Shared session store (Redis)")]
 ```
-Move sessions out of servers → any server serves any user → autoscaling and rolling deploys become easy.
+Move sessions out of servers -> any server serves any user -> autoscaling and rolling deploys become easy.
 
-## Step 7 — Message queues & workers
+## Step 7 - Message queues & workers
 Slow work (emails, image processing, reports) goes to a queue; workers scale independently. See [Message queues](11-message-queues-pub-sub-and-event-streaming.md).
 
-## Step 8 — Logging, metrics, automation
+## Step 8 - Logging, metrics, automation
 Centralized logs, metrics dashboards, alerting, CI/CD. You can't scale what you can't see. See [Observability](14-observability-logs-metrics-tracing.md).
 
-## Step 9 — Sharding the database
-Split data by a shard key when one primary can't handle writes or size. Challenges: resharding, hot keys (celebrities), cross-shard joins → denormalize. See [Sharding](06-partitioning-and-sharding.md).
+## Step 9 - Sharding the database
+Split data by a shard key when one primary can't handle writes or size. Challenges: resharding, hot keys (celebrities), cross-shard joins -> denormalize. See [Sharding](06-partitioning-and-sharding.md).
 
-## Step 10 — Multiple data centers / regions
+## Step 10 - Multiple data centers / regions
 ```mermaid
 flowchart TB
     U["Users"] --> GD["GeoDNS / anycast"]
@@ -94,6 +94,8 @@ Route users to the nearest healthy region; replicate data; automate deployments 
 ---
 
 ## Interview Q&A
-**Q: The app is slow at 1M users — where do you start?** Measure first (metrics, slow queries), then cache hot reads, add read replicas, move slow work async, then shard if writes are the bottleneck.
+**Q: The app is slow at 1M users - where do you start?**
+A: Measure first (metrics, slow queries), then cache hot reads, add read replicas, move slow work async, then shard if writes are the bottleneck.
 
-**Q: Why not just buy a bigger DB server?** Works for a while (and is simpler), but has a hard ceiling, high cost, and remains a SPOF.
+**Q: Why not just buy a bigger DB server?**
+A: Works for a while (and is simpler), but has a hard ceiling, high cost, and remains a SPOF.

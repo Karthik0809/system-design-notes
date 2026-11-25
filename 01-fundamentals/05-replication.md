@@ -1,12 +1,12 @@
 # Replication
 
-> Replication = keeping copies of the same data on multiple machines. It gives **high availability** (survive node loss), **read scalability** (serve reads from replicas) and **lower latency** (copies close to users).
+Replication = keeping copies of the same data on multiple machines. It gives **high availability** (survive node loss), **read scalability** (serve reads from replicas) and **lower latency** (copies close to users).
 
 ---
 
 ## 1. Three replication topologies
 
-### a) Single-leader (master–slave / primary–replica)
+### a) Single-leader (master-slave / primary-replica)
 ```
           writes
 Client ─────────► Leader ──replication log──► Follower 1
@@ -15,12 +15,12 @@ Client ◄── reads ───┴──────── reads ────�
 ```
 - All writes go to the leader; followers apply the leader's log in the same order.
 - Used by: MySQL, PostgreSQL, MongoDB (replica sets), Redis, Kafka partitions.
-- ✅ Simple, no write conflicts. ❌ Leader is a write bottleneck; failover needed.
+- Simple, no write conflicts. Leader is a write bottleneck; failover needed.
 
-### b) Multi-leader (master–master)
+### b) Multi-leader (master-master)
 - Several nodes accept writes (often one per data center) and replicate to each other.
-- ✅ Low-latency writes in every region, tolerates DC outage.
-- ❌ **Write conflicts** (two regions edit the same row). Must resolve: last-write-wins, merge functions, CRDTs, or app logic.
+- Low-latency writes in every region, tolerates DC outage.
+- **Write conflicts** (two regions edit the same row). Must resolve: last-write-wins, merge functions, CRDTs, or app logic.
 - Used by: multi-region MySQL setups, CouchDB, collaborative editing, offline-first mobile apps.
 
 ### c) Leaderless (Dynamo-style)
@@ -74,20 +74,20 @@ With async replication followers are *eventually* consistent. Classic anomalies:
 
 ## 4. Failover (leader dies)
 1. **Detect** failure (missed heartbeats / timeout).
-2. **Elect** a new leader (the most up-to-date follower; via consensus — Raft, ZooKeeper, Patroni, Orchestrator).
+2. **Elect** a new leader (the most up-to-date follower; via consensus - Raft, ZooKeeper, Patroni, Orchestrator).
 3. **Reconfigure** clients/proxies to send writes to the new leader.
 
 Pitfalls:
-- **Lost writes** — async writes not yet replicated vanish.
-- **Split brain** — old leader comes back thinking it's still leader → two leaders accepting writes. Fix with **fencing tokens / epochs** and STONITH ("shoot the other node in the head").
-- **Timeout tuning** — too short = unnecessary failovers under load; too long = long outage.
+- **Lost writes** - async writes not yet replicated vanish.
+- **Split brain** - old leader comes back thinking it's still leader -> two leaders accepting writes. Fix with **fencing tokens / epochs** and STONITH ("shoot the other node in the head").
+- **Timeout tuning** - too short = unnecessary failovers under load; too long = long outage.
 
 ---
 
 ## 5. How replication is implemented
-- **Statement-based** – ship SQL statements (breaks with `NOW()`, `RAND()`).
-- **Write-ahead log (WAL) shipping** – ship physical byte changes (Postgres). Tied to storage version.
-- **Logical (row-based) log** – ship row-level changes (MySQL binlog row format). Basis of **CDC (Change Data Capture)** tools like Debezium that stream DB changes into Kafka.
+- **Statement-based** - ship SQL statements (breaks with `NOW()`, `RAND()`).
+- **Write-ahead log (WAL) shipping** - ship physical byte changes (Postgres). Tied to storage version.
+- **Logical (row-based) log** - ship row-level changes (MySQL binlog row format). Basis of **CDC (Change Data Capture)** tools like Debezium that stream DB changes into Kafka.
 
 ---
 
@@ -107,8 +107,8 @@ Replication is **not** a backup: `DROP TABLE` replicates instantly to every repl
 
 ---
 
-## 8. Interview cheat-sheet
+## 8. Points to mention in an interview
 - "Writes to the primary, reads from replicas; read-your-writes by routing the user's own reads to the primary right after they write."
 - "Semi-sync replication in-region for durability, async cross-region for DR."
 - "Automatic failover with Raft/ZooKeeper-based leader election and fencing to avoid split brain."
-- "For global writes with conflicts, use leaderless/multi-leader with LWW or CRDTs — or Spanner if we need strong consistency."
+- "For global writes with conflicts, use leaderless/multi-leader with LWW or CRDTs - or Spanner if we need strong consistency."

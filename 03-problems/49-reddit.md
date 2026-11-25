@@ -1,15 +1,17 @@
 # 49 · Design Reddit (Communities, Voting, Nested Comments)
 
-> **Category:** Social / ranking · **Difficulty:** ⭐⭐⭐ · **Patterns:** vote counters, time-decay ranking (hot score), precomputed listings, nested comment trees, caching
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Social / ranking | Medium | vote counters, time-decay ranking (hot score), precomputed listings, nested comment trees, caching |
 
 ---
 
-## 1. TL;DR
+## Summary
 Posts belong to **subreddits**; users **vote**, and listings (hot, new, top) are **precomputed** per subreddit using a time-decayed score and cached (Redis sorted sets). Votes are idempotent per user and aggregated asynchronously. Comments form a **tree**, stored with parent pointers (or materialized paths) and rendered by loading the top of the tree, sorted by score, with "load more" for deep branches.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Create subreddits, posts (text/link/media) | Read-heavy, fast listing pages |
@@ -19,7 +21,7 @@ Posts belong to **subreddits**; users **vote**, and listings (hot, new, top) are
 
 ---
 
-## 3. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -36,14 +38,14 @@ flowchart LR
 
 ---
 
-## 4. Ranking: the "hot" score
+## Ranking: the "hot" score
 ```
 score = upvotes - downvotes
 order = log10(max(|score|, 1))
 sign  = 1 if score > 0, -1 if < 0, else 0
 hot   = sign * order + (post_epoch_seconds - 1134028003) / 45000
 ```
-Every 12.5 hours of age is worth 10× votes → new posts can outrank old ones. Hot scores only change when votes arrive, so they're recomputed on vote events and stored in a **sorted set per subreddit** (top 1,000 posts).
+Every 12.5 hours of age is worth 10× votes -> new posts can outrank old ones. Hot scores only change when votes arrive, so they're recomputed on vote events and stored in a **sorted set per subreddit** (top 1,000 posts).
 
 ```mermaid
 flowchart TD
@@ -57,14 +59,14 @@ flowchart TD
 
 ---
 
-## 5. Votes
-- `votes(user_id, item_id, value ∈ {-1, 0, +1})` primary key → changing a vote is an upsert; delta (e.g., -1 → +1 = +2) is emitted as an event.
+## Votes
+- `votes(user_id, item_id, value ∈ {-1, 0, +1})` primary key -> changing a vote is an upsert; delta (e.g., -1 -> +1 = +2) is emitted as an event.
 - Counters aggregated asynchronously (see [Distributed counter](42-distributed-counter.md)); display counts are approximate ("vote fuzzing" also deters bots).
 - Anti-manipulation: rate limits, account age/karma thresholds, bot detection.
 
 ---
 
-## 6. Comment trees
+## Comment trees
 | Storage approach | How | Good for |
 |---|---|---|
 | Adjacency list | `parent_id` column | Simple writes; build tree in app |
@@ -75,12 +77,15 @@ Typical approach: comments stored per `post_id` (one partition), fetch top-level
 
 ---
 
-## 7. Interview Q&A
-**Q: Why precompute listings?** Sorting all posts on every page view is too expensive; scores change only on votes.
+## Interview Q&A
+**Q: Why precompute listings?**
+A: Sorting all posts on every page view is too expensive; scores change only on votes.
 
-**Q: How do you handle a viral thread with 100K comments?** Paginate the tree, cache the top portion, sort by best (Wilson score), load more on demand.
+**Q: How do you handle a viral thread with 100K comments?**
+A: Paginate the tree, cache the top portion, sort by best (Wilson score), load more on demand.
 
-**Q: Why are vote counts not exact?** Async aggregation + intentional fuzzing; exactness isn't needed and protects against manipulation.
+**Q: Why are vote counts not exact?**
+A: Async aggregation + intentional fuzzing; exactness isn't needed and protects against manipulation.
 
 ---
 

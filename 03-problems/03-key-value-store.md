@@ -1,37 +1,39 @@
 # 03 · Design a Distributed Key-Value Store (Dynamo / Cassandra style)
 
-> **Category:** Storage infrastructure · **Difficulty:** ⭐⭐⭐⭐ · **Patterns:** consistent hashing, replication, quorum, vector clocks, gossip, hinted handoff, Merkle trees, LSM tree
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Storage infrastructure | Hard | consistent hashing, replication, quorum, vector clocks, gossip, hinted handoff, Merkle trees, LSM tree |
 
 ---
 
-## 1. TL;DR
-Partition keys over a **consistent-hash ring**, replicate each key to **N** nodes, and use tunable **quorums** (W writes, R reads). Detect failures with **gossip**, survive temporary failures with **sloppy quorum + hinted handoff**, repair permanent divergence with **Merkle-tree anti-entropy**, and resolve concurrent writes with **vector clocks** (or last-write-wins). Each node stores data in an **LSM tree** (commit log → memtable → SSTables).
+## Summary
+Partition keys over a **consistent-hash ring**, replicate each key to **N** nodes, and use tunable **quorums** (W writes, R reads). Detect failures with **gossip**, survive temporary failures with **sloppy quorum + hinted handoff**, repair permanent divergence with **Merkle-tree anti-entropy**, and resolve concurrent writes with **vector clocks** (or last-write-wins). Each node stores data in an **LSM tree** (commit log -> memtable -> SSTables).
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | `put(key, value)`, `get(key)` | Values small (< 10 KB) |
-| | Store huge data sets (TBs–PBs) |
-| | **High availability** (AP) — writes accepted during failures |
+| | Store huge data sets (TBs-PBs) |
+| | **High availability** (AP) - writes accepted during failures |
 | | Automatic scaling (add/remove nodes) |
 | | Tunable consistency, low latency |
 
-Single-server version: an in-memory hash map + compression + spill cold data to disk. Doesn't scale beyond one machine → distribute.
+Single-server version: an in-memory hash map + compression + spill cold data to disk. Doesn't scale beyond one machine -> distribute.
 
 ---
 
-## 3. CAP choice
+## CAP choice
 Network partitions are unavoidable, so choose:
-- **CP** (e.g., HBase, etcd): reject writes when replicas can't agree → banking-style correctness.
-- **AP** (Dynamo, Cassandra): keep accepting reads/writes, reconcile later → shopping carts, sessions, social data.
+- **CP** (e.g., HBase, etcd): reject writes when replicas can't agree -> banking-style correctness.
+- **AP** (Dynamo, Cassandra): keep accepting reads/writes, reconcile later -> shopping carts, sessions, social data.
 
 This design is **AP with tunable consistency**.
 
 ---
 
-## 4. Architecture
+## Architecture
 
 ```mermaid
 flowchart TD
@@ -47,24 +49,24 @@ Every node has the same role (no single master): it can coordinate requests, sto
 
 ---
 
-## 5. Core components
+## Core components
 
-### 5.1 Partitioning
-Consistent hashing with virtual nodes → even spread, minimal movement when scaling (see [02](02-consistent-hashing.md)).
+### Partitioning
+Consistent hashing with virtual nodes -> even spread, minimal movement when scaling (see [02](02-consistent-hashing.md)).
 
-### 5.2 Replication
+### Replication
 Walk clockwise from the key's position and store on the next **N distinct physical nodes** (N = 3 typical), placed across racks/data centers.
 
-### 5.3 Quorum consistency
+### Quorum consistency
 | Setting | Meaning |
 |---|---|
 | N | number of replicas |
 | W | replicas that must ack a write |
 | R | replicas that must answer a read |
 
-- `W + R > N` → read set overlaps write set → you read the latest acknowledged write.
-- `W = 1, R = 1` → fastest, eventual.
-- `R = 1, W = N` → fast reads; `W = 1, R = N` → fast writes.
+- `W + R > N` -> read set overlaps write set -> you read the latest acknowledged write.
+- `W = 1, R = 1` -> fastest, eventual.
+- `R = 1, W = N` -> fast reads; `W = 1, R = N` -> fast writes.
 - Typical: `N=3, W=2, R=2`.
 
 ```mermaid
@@ -84,22 +86,22 @@ sequenceDiagram
     D-->>K: ack (late, fine)
 ```
 
-### 5.4 Conflict resolution with vector clocks
-Each version carries `[(node, counter), …]`.
-- Version X is an **ancestor** of Y if every counter in X ≤ the one in Y → keep Y.
-- Otherwise they are **siblings (conflict)** → return both; the client merges and writes back.
+### Conflict resolution with vector clocks
+Each version carries `[(node, counter), ...]`.
+- Version X is an **ancestor** of Y if every counter in X ≤ the one in Y -> keep Y.
+- Otherwise they are **siblings (conflict)** -> return both; the client merges and writes back.
 
-Example: `D1[(Sx,1)] → D2[(Sx,2)]`, then concurrent `D3[(Sx,2),(Sy,1)]` and `D4[(Sx,2),(Sz,1)]` → conflict → client merges → `D5[(Sx,3),(Sy,1),(Sz,1)]`.
+Example: `D1[(Sx,1)] -> D2[(Sx,2)]`, then concurrent `D3[(Sx,2),(Sy,1)]` and `D4[(Sx,2),(Sz,1)]` -> conflict -> client merges -> `D5[(Sx,3),(Sy,1),(Sz,1)]`.
 Downsides: client complexity, vector growth (trim old entries). Many systems (Cassandra) use simpler **last-write-wins** timestamps instead.
 
-### 5.5 Failure detection — gossip
+### Failure detection - gossip
 Each node keeps a membership list with heartbeat counters, periodically sends it to a few random nodes. If a node's heartbeat hasn't increased for a while, others mark it down. Info spreads in O(log N) rounds without a central monitor.
 
-### 5.6 Temporary failures — sloppy quorum + hinted handoff
+### Temporary failures - sloppy quorum + hinted handoff
 If replica A is down, write to the next healthy node D with a **hint** "this belongs to A". When A recovers, D hands the data back. Keeps writes available.
 
-### 5.7 Permanent failures — anti-entropy with Merkle trees
-Each replica builds a hash tree over key ranges. Compare roots; descend only into mismatching branches → sync only the differing buckets.
+### Permanent failures - anti-entropy with Merkle trees
+Each replica builds a hash tree over key ranges. Compare roots; descend only into mismatching branches -> sync only the differing buckets.
 
 ```mermaid
 flowchart TD
@@ -111,12 +113,12 @@ flowchart TD
     RR --> B4["bucket 4"]
 ```
 
-### 5.8 Data-center outage
+### Data-center outage
 Replicate across multiple DCs; clients fail over to another DC.
 
 ---
 
-## 6. Storage engine (per node): LSM tree
+## Storage engine (per node): LSM tree
 
 ```mermaid
 flowchart LR
@@ -128,13 +130,13 @@ flowchart LR
     MT -->|"miss"| BF["Bloom filters"]
     BF --> SS
 ```
-- **Write:** append to commit log (durability) → insert into memtable → flush to SSTable when full. Sequential I/O = very fast writes.
-- **Read:** memtable → (cache) → Bloom filter tells which SSTables might contain the key → read them newest-first.
+- **Write:** append to commit log (durability) -> insert into memtable -> flush to SSTable when full. Sequential I/O = very fast writes.
+- **Read:** memtable -> (cache) -> Bloom filter tells which SSTables might contain the key -> read them newest-first.
 - **Compaction:** merges SSTables, discards overwritten values & tombstones.
 
 ---
 
-## 7. Summary of techniques
+## Summary of techniques
 | Goal | Technique |
 |---|---|
 | Store big data | Consistent hashing |
@@ -150,14 +152,18 @@ flowchart LR
 
 ---
 
-## 8. Interview Q&A
-**Q: Why can a quorum system still return stale data?** Sloppy quorums (hints on non-home nodes), concurrent writes, and read-repair delays; `W+R>N` holds only for the home replicas.
+## Interview Q&A
+**Q: Why can a quorum system still return stale data?**
+A: Sloppy quorums (hints on non-home nodes), concurrent writes, and read-repair delays; `W+R>N` holds only for the home replicas.
 
-**Q: LWW vs vector clocks?** LWW is simple but silently drops one of two concurrent writes and depends on clocks; vector clocks detect conflicts but push merging to the client.
+**Q: LWW vs vector clocks?**
+A: LWW is simple but silently drops one of two concurrent writes and depends on clocks; vector clocks detect conflicts but push merging to the client.
 
-**Q: Why LSM and not B-tree?** Write-heavy workloads: sequential appends beat random in-place updates; Bloom filters keep reads acceptable.
+**Q: Why LSM and not B-tree?**
+A: Write-heavy workloads: sequential appends beat random in-place updates; Bloom filters keep reads acceptable.
 
-**Q: How do you add a node?** It joins the ring (gossip), takes ownership of vnode ranges, streams those ranges from existing replicas, then starts serving.
+**Q: How do you add a node?**
+A: It joins the ring (gossip), takes ownership of vnode ranges, streams those ranges from existing replicas, then starts serving.
 
 ---
 

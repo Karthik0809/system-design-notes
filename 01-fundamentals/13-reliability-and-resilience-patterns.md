@@ -1,6 +1,6 @@
 # Reliability & Resilience Patterns
 
-> Everything fails: disks, servers, networks, whole regions, dependencies, deploys. Reliable systems **expect failure** and limit its blast radius.
+Everything fails: disks, servers, networks, whole regions, dependencies, deploys. Reliable systems **expect failure** and limit its blast radius.
 
 ---
 
@@ -10,19 +10,19 @@
 - **Fault tolerance** = keeps working despite component failures.
 - **Resilience** = recovers quickly from failures.
 - **Redundancy** = spare components (N+1, N+2).
-- **SPOF** = single point of failure — eliminate them at every tier.
+- **SPOF** = single point of failure - eliminate them at every tier.
 
 ### Availability math
-- Components in **series**: `A = A1 × A2` → 99.9% × 99.9% = **99.8%** (worse).
-- Components in **parallel**: `A = 1 − (1−A1)(1−A2)` → two 99% replicas = **99.99%** (better).
+- Components in **series**: `A = A1 × A2` -> 99.9% × 99.9% = **99.8%** (worse).
+- Components in **parallel**: `A = 1 − (1−A1)(1−A2)` -> two 99% replicas = **99.99%** (better).
 
 ---
 
 ## 2. SLI, SLO, SLA & Error budgets
-- **SLI (Indicator)** – a measured metric: % of requests < 300 ms, % successful requests.
-- **SLO (Objective)** – internal target: "99.9% of requests succeed over 30 days".
-- **SLA (Agreement)** – contractual promise with penalties (usually looser than SLO).
-- **Error budget** = 100% − SLO. 99.9% → ~43 min/month of allowed failure. If budget is burnt, freeze risky launches.
+- **SLI (Indicator)** - a measured metric: % of requests < 300 ms, % successful requests.
+- **SLO (Objective)** - internal target: "99.9% of requests succeed over 30 days".
+- **SLA (Agreement)** - contractual promise with penalties (usually looser than SLO).
+- **Error budget** = 100% − SLO. 99.9% -> ~43 min/month of allowed failure. If budget is burnt, freeze risky launches.
 
 ---
 
@@ -33,13 +33,13 @@
 
 ---
 
-## 4. Retries — with exponential backoff and jitter
+## 4. Retries - with exponential backoff and jitter
 ```
 delay = min(cap, base * 2^attempt)
 delay = random(0, delay)          # "full jitter"
 ```
 - Retry only **idempotent** or idempotency-keyed operations.
-- Retry only **transient** errors (timeouts, 503, 429) — not 400s.
+- Retry only **transient** errors (timeouts, 503, 429) - not 400s.
 - Cap attempts (e.g., 3) and use a **retry budget** (e.g., retries ≤ 10% of requests) to avoid **retry storms** that DDoS your own services.
 - Retry at **one layer**, not every layer (3 layers × 3 retries = 27× amplification).
 
@@ -87,7 +87,7 @@ Isolate resources so one failing dependency can't sink the ship: separate thread
 ## 8. Load shedding & backpressure
 - Reject excess requests early (`503` / `429`) instead of slowing everyone down.
 - Prioritize: drop analytics/background traffic before checkout traffic.
-- Queue limits + admission control (e.g., based on concurrency, CPU, latency — "adaptive concurrency limits").
+- Queue limits + admission control (e.g., based on concurrency, CPU, latency - "adaptive concurrency limits").
 
 ---
 
@@ -108,7 +108,7 @@ Protect services from abusive or buggy clients ([Rate Limiter](../03-problems/01
 |---|---|---|
 | **Rolling** | Replace instances gradually | No extra capacity needed |
 | **Blue-green** | Run new version (green) beside old (blue), switch traffic at once | Instant rollback |
-| **Canary** | Send 1% → 5% → 25% → 100% traffic to new version, watch metrics | Catch bugs with small blast radius |
+| **Canary** | Send 1% -> 5% -> 25% -> 100% traffic to new version, watch metrics | Catch bugs with small blast radius |
 | **Feature flags** | Deploy code dark, enable per user/percentage | Decouple deploy from release |
 | **Shadow / dark traffic** | Copy production traffic to the new version, discard responses | Test with real load safely |
 
@@ -117,8 +117,8 @@ Most outages are caused by **changes** (deploys, config). Automated rollback on 
 ---
 
 ## 12. Disaster recovery (DR)
-- **RPO (Recovery Point Objective)** – how much data you can lose (e.g., 5 min).
-- **RTO (Recovery Time Objective)** – how long until service is back (e.g., 1 hour).
+- **RPO (Recovery Point Objective)** - how much data you can lose (e.g., 5 min).
+- **RTO (Recovery Time Objective)** - how long until service is back (e.g., 1 hour).
 
 | Strategy | RPO/RTO | Cost |
 |---|---|---|
@@ -136,7 +136,7 @@ Retries + at-least-once delivery mean duplicates are normal. Use idempotency key
 
 ---
 
-## 14. Interview cheat-sheet
+## 14. Points to mention in an interview
 - "Every call has a timeout; retries use exponential backoff with jitter and are limited by a retry budget."
 - "Circuit breakers around third-party dependencies, with fallbacks (cached/stale data)."
 - "Bulkheads and cell-based deployment to limit blast radius."

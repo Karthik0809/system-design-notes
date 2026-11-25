@@ -1,15 +1,17 @@
 # 12 · Design Google Drive / Dropbox (File Storage & Sync)
 
-> **Category:** File sync · **Difficulty:** ⭐⭐⭐⭐ · **Patterns:** block-level chunking, content-addressable dedupe, strongly-consistent metadata, change notifications (long polling), versioning
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| File sync | Hard | block-level chunking, content-addressable dedupe, strongly-consistent metadata, change notifications (long polling), versioning |
 
 ---
 
-## 1. TL;DR
-Split files into **blocks** (~4 MB), identify each by its **hash**, upload only blocks the server doesn't have (**delta sync + dedupe**), store blocks in object storage and file→block lists in a **strongly-consistent metadata DB**. A **notification service** (long polling/WebSocket) tells other devices to pull changes. Keep **versions** and resolve conflicts by "first commit wins, the other becomes a conflicted copy".
+## Summary
+Split files into **blocks** (~4 MB), identify each by its **hash**, upload only blocks the server doesn't have (**delta sync + dedupe**), store blocks in object storage and file->block lists in a **strongly-consistent metadata DB**. A **notification service** (long polling/WebSocket) tells other devices to pull changes. Keep **versions** and resolve conflicts by "first commit wins, the other becomes a conflicted copy".
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Upload/download files, sync across devices | **Reliability: never lose data** |
@@ -22,7 +24,7 @@ Split files into **blocks** (~4 MB), identify each by its **hash**, upload only 
 
 ---
 
-## 3. APIs
+## APIs
 ```
 POST /files/upload?uploadType=resumable    → upload session (resume after failure)
 GET  /files/download?path=/docs/a.pdf
@@ -32,7 +34,7 @@ GET  /changes?cursor=...                    → metadata changes since cursor
 
 ---
 
-## 4. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -49,7 +51,7 @@ flowchart LR
 
 ---
 
-## 5. Upload & sync flow
+## Upload & sync flow
 ```mermaid
 sequenceDiagram
     participant A as Client A
@@ -73,7 +75,7 @@ sequenceDiagram
 
 ---
 
-## 6. Metadata model
+## Metadata model
 ```mermaid
 erDiagram
     USER ||--o{ WORKSPACE : owns
@@ -83,28 +85,31 @@ erDiagram
     BLOCK_REF }o--|| BLOCK : points_to
     DEVICE }o--|| USER : belongs_to
 ```
-`block(hash, size, storage_key, ref_count)` — deduplicated, reference counted for garbage collection.
+`block(hash, size, storage_key, ref_count)` - deduplicated, reference counted for garbage collection.
 
 ---
 
-## 7. Deep dives
+## Deep dives
 - **Delta sync:** modifying 10 KB inside a 1 GB file uploads one block, not the whole file. **Content-defined chunking** (rolling hash) keeps block boundaries stable after insertions.
 - **Dedup:** identical blocks across versions/users stored once.
 - **Consistency:** metadata needs ACID (SQL/Spanner); caches invalidated on write; never expose a version whose blocks aren't fully uploaded.
-- **Conflicts:** two offline edits → first commit wins; the second client keeps its edit as `file (conflicted copy)`.
+- **Conflicts:** two offline edits -> first commit wins; the second client keeps its edit as `file (conflicted copy)`.
 - **Notifications:** long polling per client (simple; responses carry "changes exist"), WebSocket also fine; offline clients catch up via `/changes?cursor`.
 - **Storage savings:** dedupe, version limits (keep last N or N days), cold storage for old blocks, compression (skip already compressed formats).
-- **Failure handling:** replicated storage (multi-region), DB replicas with failover, stateless API/block servers, notification server failure → clients reconnect.
+- **Failure handling:** replicated storage (multi-region), DB replicas with failover, stateless API/block servers, notification server failure -> clients reconnect.
 - **Security:** TLS, per-block encryption at rest, ACL sharing, signed share links with expiry.
 
 ---
 
-## 8. Interview Q&A
-**Q: Why split upload into metadata + block paths?** Block traffic is huge and simple (store/fetch bytes); metadata needs transactions. Separating lets each scale independently.
+## Interview Q&A
+**Q: Why split upload into metadata + block paths?**
+A: Block traffic is huge and simple (store/fetch bytes); metadata needs transactions. Separating lets each scale independently.
 
-**Q: Why hash-based block IDs?** Free deduplication and integrity verification.
+**Q: Why hash-based block IDs?**
+A: Free deduplication and integrity verification.
 
-**Q: How does a new device sync 100 GB?** Fetch metadata snapshot, download blocks in parallel from CDN/storage, prioritize recently used files.
+**Q: How does a new device sync 100 GB?**
+A: Fetch metadata snapshot, download blocks in parallel from CDN/storage, prioritize recently used files.
 
 ---
 

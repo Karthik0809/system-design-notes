@@ -1,15 +1,17 @@
 # 08 · Design a News Feed System (Facebook / LinkedIn feed)
 
-> **Category:** Social / fan-out · **Difficulty:** ⭐⭐⭐ · **Patterns:** fan-out on write vs read, hybrid for celebrities, ID-only feed cache, multi-layer caching, cursor pagination
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Social / fan-out | Medium | fan-out on write vs read, hybrid for celebrities, ID-only feed cache, multi-layer caching, cursor pagination |
 
 ---
 
-## 1. TL;DR
+## Summary
 Two flows: **publishing** (store the post, then a **fan-out service** pushes the post ID into each friend's **feed cache** via a queue) and **reading** (fetch post IDs from the user's feed cache, then **hydrate** them from post/user caches). Use **push** for normal users, **pull** for accounts with huge followings, and merge at read time.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Publish posts (text, images, video) | Feed loads fast (< 200 ms) |
@@ -18,7 +20,7 @@ Two flows: **publishing** (store the post, then a **fan-out service** pushes the
 
 ---
 
-## 3. APIs
+## APIs
 ```
 POST /v1/me/feed     { content, media_ids }     → publish
 GET  /v1/me/feed?cursor=&limit=20                → read feed
@@ -26,7 +28,7 @@ GET  /v1/me/feed?cursor=&limit=20                → read feed
 
 ---
 
-## 4. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -44,7 +46,7 @@ flowchart LR
 
 ---
 
-## 5. Publishing flow
+## Publishing flow
 ```mermaid
 sequenceDiagram
     participant U as Author
@@ -62,7 +64,7 @@ sequenceDiagram
     W->>C: LPUSH feed:{friend} post_id, LTRIM to 500
 ```
 
-## 6. Reading flow
+## Reading flow
 ```mermaid
 flowchart TD
     A["GET /feed"] --> B["Read post IDs from feed cache"]
@@ -74,23 +76,23 @@ flowchart TD
 
 ---
 
-## 7. Fan-out models
+## Fan-out models
 
 | | Fan-out on write (push) | Fan-out on read (pull) |
 |---|---|---|
 | Work happens | When posting | When reading |
-| Read latency | ⚡ Very fast | Slow (gather from many friends) |
-| Celebrity with 50M followers | ❌ Millions of writes per post | ✅ Fine |
-| Inactive users | ❌ Wasted work | ✅ No waste |
+| Read latency | Very fast | Slow (gather from many friends) |
+| Celebrity with 50M followers | Millions of writes per post | Fine |
+| Inactive users | Wasted work | No waste |
 
-**Hybrid:** push for most users; for users with > N followers, don't fan out — their followers pull those posts at read time. Skip fan-out for long-inactive users.
+**Hybrid:** push for most users; for users with > N followers, don't fan out - their followers pull those posts at read time. Skip fan-out for long-inactive users.
 
 ---
 
-## 8. Caching layers
+## Caching layers
 | Layer | Content |
 |---|---|
-| News feed | `user_id → [post_id…]` (IDs only, capped) |
+| News feed | `user_id -> [post_id...]` (IDs only, capped) |
 | Content | Post objects (hot posts in a separate hot cache) |
 | Social graph | Followers / following lists |
 | Action | Did I like / reply / share this |
@@ -100,7 +102,7 @@ Storing only IDs keeps the feed cache small; hydration reads fresh post data (so
 
 ---
 
-## 9. Deep dives
+## Deep dives
 - **Ranking:** score candidate posts (engagement prediction, recency, affinity), diversify content types, inject ads.
 - **Pagination:** cursor = last post ID (stable when new posts arrive).
 - **New follow / unfollow:** backfill recent posts async; filter unfollowed authors at read time.
@@ -109,12 +111,15 @@ Storing only IDs keeps the feed cache small; hydration reads fresh post data (so
 
 ---
 
-## 10. Interview Q&A
-**Q: Where's the bottleneck at 1B users?** Fan-out writes for popular users and feed-cache memory → hybrid fan-out, ID-only caches, TTL/eviction for inactive users.
+## Interview Q&A
+**Q: Where's the bottleneck at 1B users?**
+A: Fan-out writes for popular users and feed-cache memory -> hybrid fan-out, ID-only caches, TTL/eviction for inactive users.
 
-**Q: How do you handle a post deletion?** Mark deleted; hydration filters it; optionally async-remove IDs from caches.
+**Q: How do you handle a post deletion?**
+A: Mark deleted; hydration filters it; optionally async-remove IDs from caches.
 
-**Q: Why a message queue in fan-out?** Absorbs bursts, retries failed inserts, lets workers scale independently.
+**Q: Why a message queue in fan-out?**
+A: Absorbs bursts, retries failed inserts, lets workers scale independently.
 
 ---
 

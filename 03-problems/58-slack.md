@@ -1,15 +1,17 @@
 # 58 · Design Slack (Workspace Messaging)
 
-> **Category:** Real-time messaging, multi-tenant · **Difficulty:** ⭐⭐⭐⭐ · **Patterns:** channel-based pub/sub, gateway servers, edge cache for boot data, per-workspace sharding, search per tenant
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Real-time messaging, multi-tenant | Hard | channel-based pub/sub, gateway servers, edge cache for boot data, per-workspace sharding, search per tenant |
 
 ---
 
-## 1. TL;DR
+## Summary
 Differs from WhatsApp-style chat: messages go to **channels** with up to tens of thousands of members, organized by **workspace** (tenant), with full **history search**, threads, and integrations. Clients load a **boot snapshot** (channels, users, unread counts) from an **edge cache**, then keep a WebSocket to a **gateway server** subscribed to the user's channels via a **channel pub/sub** layer. Messages are persisted (sharded by workspace/channel), fanned out to online members, and indexed for search.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Workspaces, public/private channels, DMs, threads | Message delivery < 500 ms |
@@ -19,7 +21,7 @@ Differs from WhatsApp-style chat: messages go to **channels** with up to tens of
 
 ---
 
-## 3. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -35,7 +37,7 @@ flowchart LR
     K --> INT["Integrations / webhooks"]
 ```
 
-## 4. Send flow
+## Send flow
 ```mermaid
 sequenceDiagram
     participant A as Sender
@@ -54,7 +56,7 @@ sequenceDiagram
 
 ---
 
-## 5. Deep dives
+## Deep dives
 - **Large channels:** fan-out only to **online** members via gateways that subscribed; offline members see it on next load (unread pointer). Rate-limit @channel mentions.
 - **Unread counts:** store last-read timestamp per (user, channel); unread = messages after it (cached counts).
 - **Boot time:** edge cache near users serves lazy-loaded workspace data instead of sending the whole workspace at connect.
@@ -65,10 +67,12 @@ sequenceDiagram
 
 ---
 
-## 6. Interview Q&A
-**Q: Slack vs WhatsApp design differences?** Slack is channel-centric with huge groups, searchable server-side history and tenants; WhatsApp is device-centric, mostly small groups, E2E encrypted, messages deleted from servers after delivery.
+## Interview Q&A
+**Q: Slack vs WhatsApp design differences?**
+A: Slack is channel-centric with huge groups, searchable server-side history and tenants; WhatsApp is device-centric, mostly small groups, E2E encrypted, messages deleted from servers after delivery.
 
-**Q: How do gateways know which messages to deliver?** Each gateway subscribes to channel servers for the channels of its connected users.
+**Q: How do gateways know which messages to deliver?**
+A: Each gateway subscribes to channel servers for the channels of its connected users.
 
 ---
 

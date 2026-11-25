@@ -1,15 +1,17 @@
 # 50 · Design Google Calendar (Events, Invites, Reminders)
 
-> **Category:** Scheduling / CRUD at scale · **Difficulty:** ⭐⭐⭐ · **Patterns:** recurring events (RRULE), time-range queries, free/busy, reminder scheduling, sync via change tokens
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Scheduling / CRUD at scale | Medium | recurring events (RRULE), time-range queries, free/busy, reminder scheduling, sync via change tokens |
 
 ---
 
-## 1. TL;DR
+## Summary
 Store events per calendar with **start/end in UTC + the original time zone**; recurring events store a **recurrence rule (RRULE)** plus **exceptions**, and are **expanded at read time** for the requested window. Invites create attendee entries and notify via email/push. **Reminders** are scheduled in a distributed job scheduler. Clients sync incrementally with **sync tokens**.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Create/update/delete events, recurring events | Low-latency calendar views (week/month) |
@@ -19,7 +21,7 @@ Store events per calendar with **start/end in UTC + the original time zone**; re
 
 ---
 
-## 3. Data model
+## Data model
 ```
 calendar(calendar_id, owner_id, timezone, acl)
 event(event_id, calendar_id, start_utc, end_utc, tz, title, location,
@@ -32,7 +34,7 @@ Partition by `calendar_id`; index `(calendar_id, start_utc)` plus `recurrence_en
 
 ---
 
-## 4. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -47,7 +49,7 @@ flowchart LR
 
 ---
 
-## 5. Reading a week view
+## Reading a week view
 ```mermaid
 flowchart TD
     R["GET events for week W"] --> S["Single events with start < W.end and end > W.start"]
@@ -62,22 +64,25 @@ Why expand at read time? "Every Monday forever" can't be materialized infinitely
 
 ---
 
-## 6. Deep dives
+## Deep dives
 - **Edit "this and following" events:** split the series: end the old RRULE before the date, create a new series from that date.
 - **Invites:** attendees get a copy/reference of the event in their calendar; organizer's version is the source of truth; RSVP updates sent back.
 - **Free/busy & find-a-time:** maintain busy intervals per user (materialized for the next N weeks); intersect attendees' free slots; respect privacy (busy only, no details).
 - **Reminders:** on create/update, (re)schedule jobs for upcoming instances (rolling window, e.g., next 30 days); idempotent fire with `(event_id, instance_start, user)` key. See [Job scheduler](32-distributed-job-scheduler.md).
-- **Sync:** per-calendar change log; clients call `list?syncToken=…` to fetch only changes (CalDAV/ICS for interoperability).
+- **Sync:** per-calendar change log; clients call `list?syncToken=...` to fetch only changes (CalDAV/ICS for interoperability).
 - **Conflicts:** optimistic concurrency with `version` (ETag) on update.
 
 ---
 
-## 7. Interview Q&A
-**Q: How do you store recurring events?** RRULE + exceptions, expanded for the requested range.
+## Interview Q&A
+**Q: How do you store recurring events?**
+A: RRULE + exceptions, expanded for the requested range.
 
-**Q: Reminder for an event 2 years away?** Don't schedule it now; a rolling-window job schedules reminders for instances in the next 30 days.
+**Q: Reminder for an event 2 years away?**
+A: Don't schedule it now; a rolling-window job schedules reminders for instances in the next 30 days.
 
-**Q: How do you make "find a time" fast for 10 attendees?** Precomputed busy intervals per user + interval intersection (merge sorted intervals).
+**Q: How do you make "find a time" fast for 10 attendees?**
+A: Precomputed busy intervals per user + interval intersection (merge sorted intervals).
 
 ---
 

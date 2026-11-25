@@ -1,15 +1,17 @@
 # 22 · Design a Real-Time Gaming Leaderboard
 
-> **Category:** Ranking · **Difficulty:** ⭐⭐⭐ · **Patterns:** Redis sorted sets (skip lists), periodic keys for resets, sharding by score range vs hash, persistence for recovery
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Ranking | Medium | Redis sorted sets (skip lists), periodic keys for resets, sharding by score range vs hash, persistence for recovery |
 
 ---
 
-## 1. TL;DR
-Store scores in a **Redis sorted set** per period (`leaderboard:2026-11`). Winning a match → `ZINCRBY`; top 10 → `ZREVRANGE 0 9`; my rank → `ZREVRANK`. All O(log n). Persist scores to a durable DB so Redis can be rebuilt. Beyond one Redis node, shard by **score ranges** (fixed partitions) or by hash with scatter-gather for top-K.
+## Summary
+Store scores in a **Redis sorted set** per period (`leaderboard:2026-11`). Winning a match -> `ZINCRBY`; top 10 -> `ZREVRANGE 0 9`; my rank -> `ZREVRANK`. All O(log n). Persist scores to a durable DB so Redis can be rebuilt. Beyond one Redis node, shard by **score ranges** (fixed partitions) or by hash with scatter-gather for top-K.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Top 10 players | Real-time rank updates |
@@ -18,12 +20,12 @@ Store scores in a **Redis sorted set** per period (`leaderboard:2026-11`). Winni
 
 ---
 
-## 3. Why not SQL?
-`SELECT rank() OVER (ORDER BY score DESC)` over millions of rows on every request = full sort → too slow at real-time rates. Fine for small or batch leaderboards.
+## Why not SQL?
+`SELECT rank() OVER (ORDER BY score DESC)` over millions of rows on every request = full sort -> too slow at real-time rates. Fine for small or batch leaderboards.
 
 ---
 
-## 4. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -34,11 +36,11 @@ flowchart LR
     LS --> UC[("User profile cache")]
     G -->|"get leaderboard"| LS
 ```
-Never let clients set scores directly (cheating) — the game server reports verified results.
+Never let clients set scores directly (cheating) - the game server reports verified results.
 
 ---
 
-## 5. Redis operations
+## Redis operations
 | Action | Command | Complexity |
 |---|---|---|
 | Win a match | `ZINCRBY leaderboard:2026-11 1 user42` | O(log n) |
@@ -46,18 +48,18 @@ Never let clients set scores directly (cheating) — the game server reports ver
 | My rank | `ZREVRANK leaderboard:2026-11 user42` | O(log n) |
 | Around me | `ZREVRANGE key rank-4 rank+4` | O(log n + 9) |
 
-Sorted set = **hash map** (member → score) + **skip list** (ordered by score).
+Sorted set = **hash map** (member -> score) + **skip list** (ordered by score).
 
 ```mermaid
 flowchart LR
     L3["Level 3: 1 ----------------------- 45"] --> L2["Level 2: 1 ------- 17 ------- 45"] --> L1["Level 1: 1 - 5 - 17 - 23 - 45"]
 ```
 
-**Storage:** 25M users × ~26 bytes ≈ 650 MB → one Redis instance (+ replica) is enough. Monthly reset = new key; old key archived.
+**Storage:** 25M users × ~26 bytes ≈ 650 MB -> one Redis instance (+ replica) is enough. Monthly reset = new key; old key archived.
 
 ---
 
-## 6. Score update flow
+## Score update flow
 ```mermaid
 sequenceDiagram
     participant GS as Game server
@@ -72,11 +74,11 @@ sequenceDiagram
 
 ---
 
-## 7. Scaling to 500M users
+## Scaling to 500M users
 | Approach | How | Top-K | My rank |
 |---|---|---|---|
-| **Fixed partition by score range** | Shard 1: 1–100 pts, shard 2: 101–200… | Read the highest shard | Rank in shard + sizes of higher shards (`ZCARD`) |
-| Hash partition (Redis Cluster) | user → slot | Scatter-gather each shard's top-K and merge | Hard (needs all shards) |
+| **Fixed partition by score range** | Shard 1: 1-100 pts, shard 2: 101-200... | Read the highest shard | Rank in shard + sizes of higher shards (`ZCARD`) |
+| Hash partition (Redis Cluster) | user -> slot | Scatter-gather each shard's top-K and merge | Hard (needs all shards) |
 
 Score-range partitioning needs moving users between shards when scores cross a boundary; works well when the score distribution is known.
 
@@ -84,17 +86,20 @@ Alternative: NoSQL (DynamoDB) with write sharding + GSI on score, or approximate
 
 ---
 
-## 8. Tie-breaking
-Equal scores → earlier achiever ranks higher: encode `score = points × 10^10 + (MAX_TS − timestamp)`.
+## Tie-breaking
+Equal scores -> earlier achiever ranks higher: encode `score = points × 10^10 + (MAX_TS − timestamp)`.
 
 ---
 
-## 9. Interview Q&A
-**Q: What if Redis crashes?** Replica failover; rebuild from the DB (sum match results per user for the month).
+## Interview Q&A
+**Q: What if Redis crashes?**
+A: Replica failover; rebuild from the DB (sum match results per user for the month).
 
-**Q: Daily/weekly/all-time boards?** Separate sorted sets per period, updated together (pipeline).
+**Q: Daily/weekly/all-time boards?**
+A: Separate sorted sets per period, updated together (pipeline).
 
-**Q: Friends leaderboard?** Fetch friends' scores (`ZMSCORE`) and sort client-side/in service — friend lists are small.
+**Q: Friends leaderboard?**
+A: Fetch friends' scores (`ZMSCORE`) and sort client-side/in service - friend lists are small.
 
 ---
 

@@ -1,8 +1,8 @@
 # Caching Deep Dive
 
-> "There are only two hard things in Computer Science: cache invalidation and naming things." — Phil Karlton
->
-> A cache stores the result of expensive work (DB query, computation, remote call) in fast storage (RAM) so future requests are served faster and the backend is protected.
+> "There are only two hard things in Computer Science: cache invalidation and naming things." - Phil Karlton
+
+A cache stores the result of expensive work (DB query, computation, remote call) in fast storage (RAM) so future requests are served faster and the backend is protected.
 
 ---
 
@@ -21,7 +21,7 @@
 
 ## 2. Caching patterns (read & write strategies)
 
-### Cache-aside (lazy loading) — *most common*
+### Cache-aside (lazy loading) - *most common*
 ```
 read(key):
     v = cache.get(key)
@@ -34,9 +34,9 @@ write(key, v):
     db.update(key, v)
     cache.delete(key)             # invalidate, don't update
 ```
-- ✅ Only requested data is cached; cache failure ≠ outage (fall back to DB).
-- ❌ First request is a miss; possible stale data window.
-- 💡 **Delete instead of update** on writes avoids races where two concurrent writers leave the cache with the older value.
+- Only requested data is cached; cache failure ≠ outage (fall back to DB).
+- First request is a miss; possible stale data window.
+- **Delete instead of update** on writes avoids races where two concurrent writers leave the cache with the older value.
 
 ### Diagram
 
@@ -58,16 +58,16 @@ The cache library itself loads from DB on miss (app talks only to the cache). Sa
 
 ### Write-through
 Write to cache **and** DB synchronously.
-- ✅ Cache always fresh. ❌ Higher write latency; caches data that may never be read.
+- Cache always fresh. Higher write latency; caches data that may never be read.
 
 ### Write-behind (write-back)
 Write to cache, acknowledge, flush to DB asynchronously in batches.
-- ✅ Very fast writes, absorbs bursts (counters, likes).
-- ❌ **Data loss** if cache dies before flush.
+- Very fast writes, absorbs bursts (counters, likes).
+- **Data loss** if cache dies before flush.
 
 ### Write-around
 Write directly to DB, skip the cache; cache fills on read.
-- ✅ Avoids polluting cache with write-once data (logs, uploads).
+- Avoids polluting cache with write-once data (logs, uploads).
 
 | Pattern | Read perf | Write perf | Consistency | Risk |
 |---|---|---|---|---|
@@ -92,17 +92,17 @@ Write directly to DB, skip the cache; cache fills on read.
 ---
 
 ## 4. Cache invalidation strategies
-1. **TTL (time-to-live)** — simplest; accept staleness up to TTL.
+1. **TTL (time-to-live)** - simplest; accept staleness up to TTL.
 2. **Explicit invalidation** on write (`DEL key`).
-3. **Event-driven invalidation** — DB change → CDC (Debezium) → Kafka → invalidate cache keys across services/regions.
-4. **Versioned keys** — `user:123:v7`; bump version on write, old keys expire naturally.
+3. **Event-driven invalidation** - DB change -> CDC (Debezium) -> Kafka -> invalidate cache keys across services/regions.
+4. **Versioned keys** - `user:123:v7`; bump version on write, old keys expire naturally.
 
 ---
 
-## 5. Classic cache failure modes ⚠️
+## 5. Classic cache failure modes
 
 ### Cache stampede / thundering herd
-A hot key expires → thousands of requests miss simultaneously → all hit the DB.
+A hot key expires -> thousands of requests miss simultaneously -> all hit the DB.
 - **Request coalescing / single-flight:** only one request recomputes; others wait for it.
 - **Mutex lock** on recompute (`SET lock:key NX EX 5`).
 - **Probabilistic early expiration** (refresh before TTL with some probability).
@@ -110,16 +110,16 @@ A hot key expires → thousands of requests miss simultaneously → all hit the 
 
 ### Cache penetration
 Requests for keys that **don't exist** (e.g., attacker queries random IDs) always miss and hit DB.
-- Cache **negative results** (`key → NULL` with short TTL).
+- Cache **negative results** (`key -> NULL` with short TTL).
 - **Bloom filter** in front: if bloom says "definitely not present", reject immediately.
 
 ### Cache avalanche
-Many keys expire at the same time (or cache cluster restarts) → DB overwhelmed.
+Many keys expire at the same time (or cache cluster restarts) -> DB overwhelmed.
 - Add **random jitter** to TTLs.
 - Multi-level caches, cache warming, replicas, circuit breakers on DB.
 
 ### Hot key
-A single key gets enormous traffic (celebrity profile) → one cache shard melts.
+A single key gets enormous traffic (celebrity profile) -> one cache shard melts.
 - Replicate hot key to multiple shards (`key#1..key#N`, read random copy).
 - **Local in-process cache** for the hottest keys (L1) in front of Redis (L2).
 
@@ -155,12 +155,12 @@ Cache 20% hottest → 40M × 1 KB = 40 GB  → a few Redis nodes (with replicas 
 ## 8. Consistency between cache and DB
 Perfect consistency is impossible without distributed transactions. Practical approaches:
 - Cache-aside with **delete-after-write** + short TTL as safety net.
-- **Delayed double delete:** delete → write DB → sleep ~500 ms → delete again (covers replica-lag races).
-- For strongly-consistent data (balances, inventory counts at checkout), **read from DB** — use cache only for display.
+- **Delayed double delete:** delete -> write DB -> sleep ~500 ms -> delete again (covers replica-lag races).
+- For strongly-consistent data (balances, inventory counts at checkout), **read from DB** - use cache only for display.
 
 ---
 
-## 9. Interview cheat-sheet
+## 9. Points to mention in an interview
 - "Cache-aside with Redis, TTL 5 min plus jitter, invalidate on write."
 - "Protect against stampede with single-flight locks; against penetration with a Bloom filter and negative caching."
 - "Hot keys get replicated and an in-process L1 cache."

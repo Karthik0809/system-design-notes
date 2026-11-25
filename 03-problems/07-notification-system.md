@@ -1,15 +1,17 @@
 # 07 · Design a Notification System (Push, SMS, Email)
 
-> **Category:** Async job processing · **Difficulty:** ⭐⭐⭐ · **Patterns:** queues per channel, workers, retries, idempotency/dedup, user preferences, rate limiting
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Async job processing | Medium | queues per channel, workers, retries, idempotency/dedup, user preferences, rate limiting |
 
 ---
 
-## 1. TL;DR
+## Summary
 Services call a **Notification API**; it validates, checks **user preferences**, renders a **template**, and enqueues one message per channel into **separate queues** (push / SMS / email). **Workers** send through third-party providers (APNs, FCM, Twilio, SES/SendGrid), **retry** failures with backoff, **dedupe** by event ID, and log status for tracking.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Push (iOS/Android), SMS, email | Soft real-time (seconds) |
@@ -19,7 +21,7 @@ Services call a **Notification API**; it validates, checks **user preferences**,
 
 ---
 
-## 3. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -38,11 +40,11 @@ flowchart LR
     W1 & W2 & W3 -.->|"failures"| RQ["Retry queue / DLQ"]
 ```
 
-Why separate queues? An SMS provider outage must not block push notifications; OTPs must not wait behind a 50M-email campaign → also **priority queues**.
+Why separate queues? An SMS provider outage must not block push notifications; OTPs must not wait behind a 50M-email campaign -> also **priority queues**.
 
 ---
 
-## 4. Send flow
+## Send flow
 ```mermaid
 sequenceDiagram
     participant S as Order Service
@@ -64,7 +66,7 @@ sequenceDiagram
 
 ---
 
-## 5. Data model
+## Data model
 | Table | Fields |
 |---|---|
 | user | user_id, email, phone, country, timezone |
@@ -75,34 +77,37 @@ sequenceDiagram
 
 ---
 
-## 6. Deep dives
-- **Reliability:** persist every notification in the log before sending; at-least-once delivery with retries (exponential backoff + jitter); after N failures → DLQ + alert.
+## Deep dives
+- **Reliability:** persist every notification in the log before sending; at-least-once delivery with retries (exponential backoff + jitter); after N failures -> DLQ + alert.
 - **Deduplication:** idempotency/event ID checked before enqueue and before send (`SET NX event:{id}` with TTL). Exactly-once to a phone is impossible; aim for effectively once.
 - **Preferences & compliance:** opt-outs, unsubscribe links, quiet hours in the user's time zone, consent laws.
 - **Rate limiting:** per user (e.g., max 3 marketing pushes/day) and per provider (respect APNs/FCM/SES quotas).
 - **Campaigns:** split audiences into batches, spread sends over time, warm up email IPs.
 - **Token hygiene:** remove invalid device tokens reported by APNs/FCM.
-- **Tracking:** delivery receipts, open/click tracking via redirect links/pixels → events → analytics.
+- **Tracking:** delivery receipts, open/click tracking via redirect links/pixels -> events -> analytics.
 - **Security:** only authenticated internal services (API keys/mTLS) can send.
 
 ---
 
-## 7. Failure modes
+## Failure modes
 | Failure | Handling |
 |---|---|
 | Provider down | Retry later, failover to secondary provider (e.g., SMS) |
-| Worker crash mid-send | Message re-delivered (visibility timeout) → dedupe prevents double send |
+| Worker crash mid-send | Message re-delivered (visibility timeout) -> dedupe prevents double send |
 | Queue backlog | Autoscale workers on queue depth |
 | Bad template deploy | Template versioning + preview + canary |
 
 ---
 
-## 8. Interview Q&A
-**Q: Push vs pull for in-app notifications?** In-app inbox stored per user (Cassandra by user_id); badge updates pushed via WebSocket when online; fetched on app open.
+## Interview Q&A
+**Q: Push vs pull for in-app notifications?**
+A: In-app inbox stored per user (Cassandra by user_id); badge updates pushed via WebSocket when online; fetched on app open.
 
-**Q: How to send a notification to 100M users fast?** Fan-out in batches through the queue, many workers, provider-aware rate limits; precompute audience segments.
+**Q: How to send a notification to 100M users fast?**
+A: Fan-out in batches through the queue, many workers, provider-aware rate limits; precompute audience segments.
 
-**Q: How do you guarantee no duplicates?** You can't fully; idempotency keys at API and worker level make duplicates rare and harmless.
+**Q: How do you guarantee no duplicates?**
+A: You can't fully; idempotency keys at API and worker level make duplicates rare and harmless.
 
 ---
 

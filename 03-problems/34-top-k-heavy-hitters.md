@@ -1,9 +1,11 @@
 # 34 · Design Top-K Heavy Hitters (Trending)
 
-> **Category:** Stream aggregation · **Difficulty:** ⭐⭐⭐⭐ · **Patterns:** partition by key, local top-K + merge, Count-Min Sketch, time buckets, lambda architecture
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Stream aggregation | Hard | partition by key, local top-K + merge, Count-Min Sketch, time buckets, lambda architecture |
 
-> "Show the top 10 most viewed videos in the last hour / day / all-time" — a stream aggregation problem at massive scale.
-> Related: [Ad Click Event Aggregation](18-ad-click-aggregation.md), Fundamentals → Batch & Stream Processing, Probabilistic Data Structures.
+> "Show the top 10 most viewed videos in the last hour / day / all-time" - a stream aggregation problem at massive scale.
+Related: [Ad Click Event Aggregation](18-ad-click-aggregation.md), Fundamentals -> Batch & Stream Processing, Probabilistic Data Structures.
 
 ---
 
@@ -34,7 +36,7 @@ flowchart TD
 
 ---
 
-## Step 1: Requirements
+## Requirements
 
 ### Functional
 - `topK(k, window)` for windows like last 1 min, 1 h, 1 day (optionally per region/category).
@@ -48,15 +50,15 @@ flowchart TD
 
 ---
 
-## Step 2: Naive approach & why it fails
-Single hash map `item → count` + heap:
+## Naive approach & why it fails
+Single hash map `item -> count` + heap:
 - Billions of keys don't fit in one machine's memory.
 - 1M writes/s exceeds a single node.
 - Sliding windows need per-time-bucket counts.
 
 ---
 
-## Step 3: Building blocks
+## Building blocks
 
 ### Count-Min Sketch (approximate counts)
 Fixed memory (e.g., 4 × 1M counters ≈ 16 MB) independent of distinct items; never underestimates. Maintain a **min-heap of size K** alongside: on each event, estimate count; if > heap min, update heap.
@@ -69,7 +71,7 @@ For daily/official results, batch-count from raw logs.
 
 ---
 
-## Step 4: Architecture (Lambda-style: fast approximate + slow exact)
+## Architecture (Lambda-style: fast approximate + slow exact)
 ```
 Clients ─► API ─► Kafka (events, partitioned by item_id)
                     │
@@ -87,26 +89,26 @@ Query service ─► Redis (precomputed top-K) ─► client
 ```
 
 ### Why partition by item_id?
-All events of one item go to the same worker → that worker's count for the item is complete → merging partition-level top-K lists is correct (an item can't be split across partitions). If partitioned randomly, you'd need to merge full counts (much more data).
+All events of one item go to the same worker -> that worker's count for the item is complete -> merging partition-level top-K lists is correct (an item can't be split across partitions). If partitioned randomly, you'd need to merge full counts (much more data).
 
 ### Hot items
-A viral video concentrates on one partition → **pre-aggregate** on the producer/API side (count locally for 1–5 s and send `(item, +n)`), or two-stage aggregation with salted keys.
+A viral video concentrates on one partition -> **pre-aggregate** on the producer/API side (count locally for 1-5 s and send `(item, +n)`), or two-stage aggregation with salted keys.
 
 ---
 
-## Step 5: Sliding windows
+## Sliding windows
 - Keep per-minute counts (buckets); "last hour" = sum of last 60 buckets. Maintain a running total: add new minute, subtract the expired one.
 - Merging top-K lists from buckets is approximate (an item that's #101 in every minute might be #5 for the hour). Mitigate by keeping larger K' per bucket, or keep CMS per bucket (CMS are **mergeable** by adding arrays) and a candidate set.
 
 ---
 
-## Step 6: Serving
+## Serving
 - Precompute top-K for common (window, region, category) combos; cache in Redis; clients poll or get pushed every few seconds.
 - For "trending" (not just popular), score by **velocity**: current window count vs historical baseline (z-score), with spam filtering.
 
 ---
 
-## Step 7: Trade-offs to discuss
+## Trade-offs to discuss
 | Choice | Pro | Con |
 |---|---|---|
 | Exact hash maps per partition | Accurate | Memory for billions of keys |
@@ -116,8 +118,8 @@ A viral video concentrates on one partition → **pre-aggregate** on the produce
 
 ---
 
-## Interview wrap-up
-- Kafka partitioned by item → per-partition counting → merge top-K lists.
+## Points to mention in an interview
+- Kafka partitioned by item -> per-partition counting -> merge top-K lists.
 - Count-Min Sketch + heap for memory efficiency; pre-aggregation for hot keys.
 - Minute buckets for sliding windows; batch job for exact daily charts.
 - Precomputed results in Redis for fast reads.

@@ -1,15 +1,17 @@
 # 11 · Design YouTube (Video Upload & Streaming)
 
-> **Category:** Media pipeline · **Difficulty:** ⭐⭐⭐⭐ · **Patterns:** pre-signed uploads, DAG-based transcoding, adaptive bitrate streaming, CDN, popularity-aware caching
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Media pipeline | Hard | pre-signed uploads, DAG-based transcoding, adaptive bitrate streaming, CDN, popularity-aware caching |
 
 ---
 
-## 1. TL;DR
+## Summary
 Users upload videos **directly to object storage** via pre-signed (resumable, multipart) URLs. A **transcoding pipeline** (a DAG of tasks: split, encode to many resolutions/codecs, thumbnails, watermark, moderation) runs on a worker fleet via queues. Outputs go to storage and are streamed with **HLS/DASH adaptive bitrate** from a **CDN**. Metadata lives in sharded SQL + cache.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Upload videos (up to ~1 GB) | Fast uploads, resumable |
@@ -21,13 +23,13 @@ Users upload videos **directly to object storage** via pre-signed (resumable, mu
 | Quantity | Value |
 |---|---|
 | DAU | 5M, 5 videos watched each |
-| Uploads | 10% upload 1 video/day → 500K/day |
-| Avg size | 300 MB → **150 TB/day** new storage |
-| CDN egress | 5M × 5 × 300 MB ≈ 7.5 PB/day → $$$ (≈ $150K/day at $0.02/GB) |
+| Uploads | 10% upload 1 video/day -> 500K/day |
+| Avg size | 300 MB -> **150 TB/day** new storage |
+| CDN egress | 5M × 5 × 300 MB ≈ 7.5 PB/day -> $$$ (≈ $150K/day at $0.02/GB) |
 
 ---
 
-## 3. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -44,7 +46,7 @@ flowchart LR
 
 ---
 
-## 4. Upload flow
+## Upload flow
 ```mermaid
 sequenceDiagram
     participant C as Client
@@ -65,7 +67,7 @@ Metadata (title, description) is uploaded in parallel with the video bytes.
 
 ---
 
-## 5. Transcoding as a DAG
+## Transcoding as a DAG
 
 ```mermaid
 flowchart LR
@@ -83,14 +85,14 @@ Why chunk? Encoding a 1-hour video on one machine is slow; 1,000 chunks encoded 
 
 ---
 
-## 6. Streaming
-- **Adaptive bitrate (ABR):** each rendition split into 2–6 s segments + a manifest; the player switches quality per segment based on bandwidth & buffer.
+## Streaming
+- **Adaptive bitrate (ABR):** each rendition split into 2-6 s segments + a manifest; the player switches quality per segment based on bandwidth & buffer.
 - Protocols: **HLS** (Apple), **MPEG-DASH**, CMAF (shared segments).
 - Videos stream from the closest CDN edge; never through API servers.
 
 ---
 
-## 7. Optimizations
+## Optimizations
 | Area | Idea |
 |---|---|
 | Upload speed | Parallel chunk upload, upload centers close to users (regional buckets) |
@@ -100,22 +102,25 @@ Why chunk? Encoding a 1-hour video on one machine is slow; 1,000 chunks encoded 
 
 ---
 
-## 8. Error handling
+## Error handling
 | Error | Handling |
 |---|---|
 | Upload chunk fails | Retry that chunk (resumable) |
 | Transcoding task fails | Retry task; after N attempts mark video failed and notify |
-| Corrupt/invalid video | Non-recoverable → error to user |
+| Corrupt/invalid video | Non-recoverable -> error to user |
 | API/metadata server down | Stateless replicas / replica promotion |
 
 ---
 
-## 9. Interview Q&A
-**Q: Why not upload through API servers?** Large bytes waste server bandwidth/CPU; direct-to-storage via pre-signed URLs scales and is cheaper.
+## Interview Q&A
+**Q: Why not upload through API servers?**
+A: Large bytes waste server bandwidth/CPU; direct-to-storage via pre-signed URLs scales and is cheaper.
 
-**Q: How do view counts work at scale?** Send view events to Kafka and aggregate (see [Distributed counter](42-distributed-counter.md)).
+**Q: How do view counts work at scale?**
+A: Send view events to Kafka and aggregate (see [Distributed counter](42-distributed-counter.md)).
 
-**Q: How is live streaming different?** Real-time encoding, latency budget of seconds, RTMP/SRT ingest — see [Live streaming](40-live-streaming.md).
+**Q: How is live streaming different?**
+A: Real-time encoding, latency budget of seconds, RTMP/SRT ingest - see [Live streaming](40-live-streaming.md).
 
 ---
 

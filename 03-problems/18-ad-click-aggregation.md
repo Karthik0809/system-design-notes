@@ -1,15 +1,17 @@
 # 18 · Design Ad Click Event Aggregation
 
-> **Category:** Stream aggregation · **Difficulty:** ⭐⭐⭐⭐⭐ · **Patterns:** MapReduce-style streaming, event-time windows & watermarks, exactly-once, raw + aggregated storage, reconciliation
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Stream aggregation | Very hard | MapReduce-style streaming, event-time windows & watermarks, exactly-once, raw + aggregated storage, reconciliation |
 
 ---
 
-## 1. TL;DR
-Click events flow into **Kafka**, a stream aggregation job (Flink, structured as **map → aggregate → reduce**) counts clicks per ad per minute and computes **top-N ads**, using **event time with watermarks** for late events and **exactly-once** processing. Results go to an aggregated DB for dashboards and billing; **raw events** are kept too so a **batch reconciliation** job can verify and recompute.
+## Summary
+Click events flow into **Kafka**, a stream aggregation job (Flink, structured as **map -> aggregate -> reduce**) counts clicks per ad per minute and computes **top-N ads**, using **event time with watermarks** for late events and **exactly-once** processing. Results go to an aggregated DB for dashboards and billing; **raw events** are kept too so a **batch reconciliation** job can verify and recompute.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Clicks of ad X in last M minutes | **Correctness** (billing!) |
@@ -19,7 +21,7 @@ Click events flow into **Kafka**, a stream aggregation job (Flink, structured as
 
 ---
 
-## 3. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -37,7 +39,7 @@ Why two Kafkas? Decouples aggregation from the DB writer, enables exactly-once h
 
 ---
 
-## 4. Aggregation as a DAG
+## Aggregation as a DAG
 ```mermaid
 flowchart LR
     IN["Clicks"] --> M1["Map: route by ad_id % n"]
@@ -54,15 +56,15 @@ flowchart LR
 
 ---
 
-## 5. Time & windows
+## Time & windows
 - **Event time** (when clicked) vs **processing time** (when processed). Billing needs event time.
 - **Tumbling windows** (1 min) for per-ad counts; **sliding windows** for top-N over last M minutes.
-- **Watermark**: "assume events older than T+15s have arrived" → close the window. Events arriving later than the watermark are handled by reconciliation (or allowed-lateness updates).
+- **Watermark**: "assume events older than T+15s have arrived" -> close the window. Events arriving later than the watermark are handled by reconciliation (or allowed-lateness updates).
 
 ---
 
-## 6. Exactly-once
-Failure scenario: aggregator emits a result, crashes before committing its Kafka offset → reprocesses → double count.
+## Exactly-once
+Failure scenario: aggregator emits a result, crashes before committing its Kafka offset -> reprocesses -> double count.
 - Store **upstream offsets atomically with results** (or use Flink checkpoints + transactional sinks).
 - Dedupe by click ID (fraud/bot double-clicks too).
 ```mermaid
@@ -79,7 +81,7 @@ sequenceDiagram
 
 ---
 
-## 7. Scaling & reliability
+## Scaling & reliability
 - Partition Kafka by `ad_id`; add consumers up to partition count; pre-scale partitions to avoid rebalancing hot paths.
 - **Hotspot ads** (huge campaigns): allocate extra aggregation workers for those keys, or split + merge.
 - Checkpoint aggregator state (snapshots) for fast recovery.
@@ -91,12 +93,15 @@ Lambda = streaming + separate batch path; Kappa = streaming only, recompute by r
 
 ---
 
-## 8. Interview Q&A
-**Q: Why keep raw data if we have aggregates?** For audit, recomputation after bugs, and new aggregations.
+## Interview Q&A
+**Q: Why keep raw data if we have aggregates?**
+A: For audit, recomputation after bugs, and new aggregations.
 
-**Q: How do you handle a click arriving 10 minutes late?** Watermark already closed → stored raw → picked up by reconciliation (or a late-data side output updates the window).
+**Q: How do you handle a click arriving 10 minutes late?**
+A: Watermark already closed -> stored raw -> picked up by reconciliation (or a late-data side output updates the window).
 
-**Q: How do you find top-N across partitions?** Each partition computes local top-N; the reducer merges (correct because each ad lives in exactly one partition).
+**Q: How do you find top-N across partitions?**
+A: Each partition computes local top-N; the reducer merges (correct because each ad lives in exactly one partition).
 
 ---
 

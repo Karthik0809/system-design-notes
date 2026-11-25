@@ -1,6 +1,6 @@
 # Load Balancing
 
-> A load balancer (LB) spreads traffic across a pool of servers so that no single server is overloaded, and removes unhealthy servers from rotation. It is the component that makes horizontal scaling possible.
+A load balancer (LB) spreads traffic across a pool of servers so that no single server is overloaded, and removes unhealthy servers from rotation. It is the component that makes horizontal scaling possible.
 
 ---
 
@@ -33,7 +33,7 @@ flowchart LR
 |---|---|---|
 | Looks at | IP + port (TCP/UDP) | HTTP method, URL path, headers, cookies |
 | Speed | Very fast, low CPU | Slower (must parse HTTP, often terminate TLS) |
-| Features | Simple forwarding, NAT / DSR | Path routing (`/api` → service A, `/img` → B), sticky cookies, header rewrites, caching, auth, retries, WAF |
+| Features | Simple forwarding, NAT / DSR | Path routing (`/api` -> service A, `/img` -> B), sticky cookies, header rewrites, caching, auth, retries, WAF |
 | Examples | AWS NLB, LVS, Maglev | AWS ALB, Nginx, Envoy, HAProxy (both modes) |
 
 ---
@@ -55,9 +55,9 @@ flowchart LR
 ---
 
 ## 4. Health checks
-- **Active:** LB pings `/health` every few seconds; N failures → remove; M successes → add back.
+- **Active:** LB pings `/health` every few seconds; N failures -> remove; M successes -> add back.
 - **Passive:** LB watches real traffic for errors/timeouts (outlier detection).
-- Keep `/health` cheap; have a separate deep `/ready` that checks dependencies (careful: a DB outage shouldn't make *every* server "unhealthy" and empty the pool — that's a cascading failure).
+- Keep `/health` cheap; have a separate deep `/ready` that checks dependencies (careful: a DB outage shouldn't make *every* server "unhealthy" and empty the pool - that's a cascading failure).
 
 ---
 
@@ -76,20 +76,20 @@ flowchart LR
 ---
 
 ## 7. Global load balancing (multi-region)
-- **GeoDNS** — return the regional LB IP closest to the user.
-- **Anycast** — one IP advertised from many PoPs (Google Front End, Cloudflare).
-- **Latency-based / weighted routing** — Route 53 policies.
-- **Failover** — health checks per region; drain traffic from an unhealthy region.
+- **GeoDNS** - return the regional LB IP closest to the user.
+- **Anycast** - one IP advertised from many PoPs (Google Front End, Cloudflare).
+- **Latency-based / weighted routing** - Route 53 policies.
+- **Failover** - health checks per region; drain traffic from an unhealthy region.
 
 ---
 
 ## 8. Other LB responsibilities
-- **TLS termination** – decrypt once at the edge.
+- **TLS termination** - decrypt once at the edge.
 - **Connection pooling / multiplexing** to backends.
 - **Rate limiting & WAF** (block SQL injection, bots).
-- **Retries & timeouts** (careful: retries can amplify load — use budgets).
-- **Graceful draining** – stop sending new requests to a server being deployed, let in-flight finish.
-- **Autoscaling integration** – new instances register automatically.
+- **Retries & timeouts** (careful: retries can amplify load - use budgets).
+- **Graceful draining** - stop sending new requests to a server being deployed, let in-flight finish.
+- **Autoscaling integration** - new instances register automatically.
 
 ---
 
@@ -104,7 +104,7 @@ In microservices, instead of a central LB, clients can fetch the list of healthy
 
 ---
 
-## 10. Interview cheat-sheet
+## 10. Points to mention in an interview
 - "Put a **L7 load balancer** in front of stateless web servers; use **least-connections** for WebSocket servers."
 - "Health checks remove dead nodes; LBs run redundantly so they aren't a SPOF."
 - "For global users, **GeoDNS + regional LBs**; for static content, a **CDN**."

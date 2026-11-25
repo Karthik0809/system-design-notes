@@ -1,6 +1,6 @@
 # Databases: SQL vs NoSQL, ACID, Isolation & Indexing
 
-> "Which database?" is asked in nearly every system design interview. The right answer is always driven by **access patterns, consistency needs, scale and data shape** — not by brand names.
+> "Which database?" is asked in nearly every system design interview. The right answer is always driven by **access patterns, consistency needs, scale and data shape** - not by brand names.
 
 ---
 
@@ -9,9 +9,9 @@
 | Type | Data model | Examples | Strengths | Typical use |
 |---|---|---|---|---|
 | **Relational (SQL)** | Tables, rows, joins, schema | PostgreSQL, MySQL, Oracle, SQL Server | ACID transactions, joins, flexible queries, mature | Payments, orders, users, inventory, anything with strong consistency |
-| **Key-Value** | `key → blob` | Redis, DynamoDB, Riak, etcd | O(1) lookups, massive scale | Caching, sessions, carts, feature flags |
+| **Key-Value** | `key -> blob` | Redis, DynamoDB, Riak, etcd | O(1) lookups, massive scale | Caching, sessions, carts, feature flags |
 | **Document** | JSON/BSON documents | MongoDB, Couchbase, Firestore | Flexible schema, nested data, one read per object | Catalogs, CMS, user profiles |
-| **Wide-column** | Row key → column families, sorted | Cassandra, HBase, Bigtable, ScyllaDB | Huge write throughput, time-series, linear scale | Messages, activity logs, IoT, metrics |
+| **Wide-column** | Row key -> column families, sorted | Cassandra, HBase, Bigtable, ScyllaDB | Huge write throughput, time-series, linear scale | Messages, activity logs, IoT, metrics |
 | **Graph** | Nodes & edges | Neo4j, Neptune, JanusGraph | Multi-hop relationship queries | Social graph, recommendations, fraud rings |
 | **Time-series** | Timestamped points | InfluxDB, TimescaleDB, Prometheus | Compression, downsampling, range queries | Metrics, monitoring, IoT |
 | **Search** | Inverted index | Elasticsearch, OpenSearch, Solr | Full-text, fuzzy, faceted search | Product search, log search |
@@ -23,15 +23,15 @@
 
 ## 2. How to choose (interview decision guide)
 
-1. **Need multi-row transactions / strong consistency (money, inventory)?** → SQL (or NewSQL at global scale).
-2. **Simple lookups by key at huge scale?** → Key-value (DynamoDB / Redis).
-3. **Massive write volume, append-heavy, query by partition key + time?** → Wide-column (Cassandra).
-4. **Flexible, nested, evolving schema?** → Document DB.
-5. **Deep relationship traversals?** → Graph DB.
-6. **Full-text search?** → Elasticsearch (as a secondary index, not source of truth).
-7. **Analytics over history?** → Columnar warehouse fed by CDC/ETL.
+1. **Need multi-row transactions / strong consistency (money, inventory)?** -> SQL (or NewSQL at global scale).
+2. **Simple lookups by key at huge scale?** -> Key-value (DynamoDB / Redis).
+3. **Massive write volume, append-heavy, query by partition key + time?** -> Wide-column (Cassandra).
+4. **Flexible, nested, evolving schema?** -> Document DB.
+5. **Deep relationship traversals?** -> Graph DB.
+6. **Full-text search?** -> Elasticsearch (as a secondary index, not source of truth).
+7. **Analytics over history?** -> Columnar warehouse fed by CDC/ETL.
 
-> Real systems are **polyglot**: Postgres for orders, Redis for cache, Cassandra for messages, Elasticsearch for search, S3 for blobs, Snowflake for analytics.
+Real systems are **polyglot**: Postgres for orders, Redis for cache, Cassandra for messages, Elasticsearch for search, S3 for blobs, Snowflake for analytics.
 
 ---
 
@@ -75,11 +75,11 @@ flowchart TD
 
 | Level | Dirty | Non-repeatable | Phantom | Notes |
 |---|---|---|---|---|
-| Read Uncommitted | ✗ possible | possible | possible | Rarely used |
-| Read Committed | ✓ prevented | possible | possible | Postgres/Oracle default |
-| Repeatable Read | ✓ | ✓ | possible (MySQL InnoDB prevents most) | MySQL default |
-| Snapshot Isolation | ✓ | ✓ | ✓ (mostly) | MVCC; still allows write skew |
-| Serializable | ✓ | ✓ | ✓ | Safest, slowest |
+| Read Uncommitted | possible | possible | possible | Rarely used |
+| Read Committed | prevented | possible | possible | Postgres/Oracle default |
+| Repeatable Read | prevented | prevented | possible (MySQL InnoDB prevents most) | MySQL default |
+| Snapshot Isolation | prevented | prevented | prevented (mostly) | MVCC; still allows write skew |
+| Serializable | prevented | prevented | prevented | Safest, slowest |
 
 ### Preventing lost updates / double booking
 - **Pessimistic locking:** `SELECT ... FOR UPDATE` locks the row until commit.
@@ -89,7 +89,7 @@ flowchart TD
   WHERE seat_id=42 AND version=7;   -- 0 rows updated → someone else won, retry
   ```
 - **Atomic operations:** `UPDATE stock SET qty = qty - 1 WHERE id=1 AND qty > 0`.
-- **Unique constraints:** `UNIQUE(event_id, seat_id)` on a bookings table — the DB itself prevents doubles.
+- **Unique constraints:** `UNIQUE(event_id, seat_id)` on a bookings table - the DB itself prevents doubles.
 
 ---
 
@@ -108,8 +108,8 @@ An index is a separate data structure that lets the DB find rows without scannin
 
 ### LSM Tree (Log-Structured Merge Tree)
 - Used by Cassandra, RocksDB, LevelDB, HBase, ScyllaDB.
-- Write path: append to **commit log** → insert into in-memory **memtable** → flush to immutable sorted **SSTables** on disk → background **compaction** merges SSTables.
-- Read path: memtable → bloom filters → SSTables (newest first).
+- Write path: append to **commit log** -> insert into in-memory **memtable** -> flush to immutable sorted **SSTables** on disk -> background **compaction** merges SSTables.
+- Read path: memtable -> bloom filters -> SSTables (newest first).
 - **Very fast writes** (sequential I/O); reads can touch several files (mitigated by bloom filters & compaction).
 
 | | B-Tree | LSM Tree |
@@ -120,12 +120,12 @@ An index is a separate data structure that lets the DB find rows without scannin
 | Best for | OLTP, read-heavy | Write-heavy, time-series, logs |
 
 ### Other indexes
-- **Hash index** – O(1) equality lookups, no ranges.
-- **Composite index** `(user_id, created_at)` – follows the **leftmost prefix rule**: helps `WHERE user_id=?` and `WHERE user_id=? ORDER BY created_at`, not `WHERE created_at=?` alone.
-- **Covering index** – contains every column the query needs → no table lookup.
-- **Inverted index** – word → list of documents (full-text search).
-- **Geospatial** – R-tree, geohash, quadtree, S2 (see Proximity Service chapter).
-- **Bitmap index** – low-cardinality columns in analytics.
+- **Hash index** - O(1) equality lookups, no ranges.
+- **Composite index** `(user_id, created_at)` - follows the **leftmost prefix rule**: helps `WHERE user_id=?` and `WHERE user_id=? ORDER BY created_at`, not `WHERE created_at=?` alone.
+- **Covering index** - contains every column the query needs -> no table lookup.
+- **Inverted index** - word -> list of documents (full-text search).
+- **Geospatial** - R-tree, geohash, quadtree, S2 (see Proximity Service chapter).
+- **Bitmap index** - low-cardinality columns in analytics.
 
 ### Cost of indexes
 Every index speeds up reads but **slows writes** (each insert updates every index) and uses storage. Index the columns you filter/sort/join on, nothing more.
@@ -133,8 +133,8 @@ Every index speeds up reads but **slows writes** (each insert updates every inde
 ---
 
 ## 7. Normalization vs Denormalization
-- **Normalize** (3NF) – no duplicate data, easy updates, requires joins. Good for OLTP correctness.
-- **Denormalize** – duplicate data to avoid joins (e.g., store `author_name` in the post row). Faster reads, harder updates. Essential once you **shard**, since cross-shard joins are expensive.
+- **Normalize** (3NF) - no duplicate data, easy updates, requires joins. Good for OLTP correctness.
+- **Denormalize** - duplicate data to avoid joins (e.g., store `author_name` in the post row). Faster reads, harder updates. Essential once you **shard**, since cross-shard joins are expensive.
 
 ---
 
@@ -143,7 +143,7 @@ DB connections are expensive (Postgres forks a process per connection). Use a po
 
 ---
 
-## 9. Scaling a database — the usual ladder
+## 9. Scaling a database - the usual ladder
 1. Add indexes, fix slow queries (`EXPLAIN`).
 2. Vertical scaling (bigger box).
 3. Caching (Redis) in front of reads.
@@ -154,7 +154,7 @@ DB connections are expensive (Postgres forks a process per connection). Use a po
 
 ---
 
-## 10. Interview quick-fire
+## 10. Interview Q&A
 - **Why not NoSQL for payments?** Need multi-row atomic transactions & strong consistency.
 - **Why Cassandra for chat messages?** Write-heavy, query by `(channel_id, time)`, linear scale, LSM writes.
 - **How do you prevent double booking?** Unique constraint or `SELECT FOR UPDATE` / optimistic version check inside a transaction.

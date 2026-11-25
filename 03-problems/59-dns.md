@@ -1,15 +1,17 @@
 # 59 · Design the Domain Name System (DNS)
 
-> **Category:** Internet infrastructure · **Difficulty:** ⭐⭐⭐ · **Patterns:** hierarchical delegation, caching with TTL, anycast, replication of authoritative zones, eventual consistency
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Internet infrastructure | Medium | hierarchical delegation, caching with TTL, anycast, replication of authoritative zones, eventual consistency |
 
 ---
 
-## 1. TL;DR
-DNS is a **hierarchical, distributed, heavily cached** key-value system mapping names to records. **Recursive resolvers** (ISP, 8.8.8.8) walk the hierarchy — **root → TLD → authoritative** — and cache each answer for its **TTL**. Authoritative servers are replicated and served via **anycast**, and zone updates propagate to secondaries. The design trades instant consistency for massive scale and availability.
+## Summary
+DNS is a **hierarchical, distributed, heavily cached** key-value system mapping names to records. **Recursive resolvers** (ISP, 8.8.8.8) walk the hierarchy - **root -> TLD -> authoritative** - and cache each answer for its **TTL**. Authoritative servers are replicated and served via **anycast**, and zone updates propagate to secondaries. The design trades instant consistency for massive scale and availability.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Resolve names to A/AAAA/CNAME/MX/TXT records | Trillions of queries/day |
@@ -18,7 +20,7 @@ DNS is a **hierarchical, distributed, heavily cached** key-value system mapping 
 
 ---
 
-## 3. Resolution flow
+## Resolution flow
 
 ```mermaid
 sequenceDiagram
@@ -38,7 +40,7 @@ sequenceDiagram
     R-->>C: answer (cached 300s)
 ```
 
-## 4. Architecture
+## Architecture
 
 ```mermaid
 flowchart TB
@@ -54,20 +56,22 @@ flowchart TB
 
 ---
 
-## 5. Deep dives
+## Deep dives
 - **Caching at every layer:** browser, OS, resolver; TTL controls freshness vs load (low TTL = faster changes, more queries). Negative caching for NXDOMAIN.
-- **Updates propagate eventually:** after a change, old answers live until cached TTLs expire → lower TTL before planned migrations.
-- **Anycast:** same IP from many locations → nearest instance answers, absorbs DDoS, automatic failover via BGP.
+- **Updates propagate eventually:** after a change, old answers live until cached TTLs expire -> lower TTL before planned migrations.
+- **Anycast:** same IP from many locations -> nearest instance answers, absorbs DDoS, automatic failover via BGP.
 - **Managed DNS features:** GeoDNS / latency-based answers, weighted records (canary), health-checked failover.
 - **Security:** DNSSEC signs records (integrity), DoH/DoT encrypt queries, rate limiting & response-rate limiting against amplification attacks.
 - **Storage at authoritative servers:** zones held in memory (small), replicated to all anycast nodes.
 
 ---
 
-## 6. Interview Q&A
-**Q: Why is DNS so scalable?** Hierarchical delegation splits ownership, and aggressive TTL-based caching means most queries never reach authoritative servers.
+## Interview Q&A
+**Q: Why is DNS so scalable?**
+A: Hierarchical delegation splits ownership, and aggressive TTL-based caching means most queries never reach authoritative servers.
 
-**Q: Why might users still hit an old IP after you changed a record?** Resolvers cache until TTL expires (some ignore TTLs).
+**Q: Why might users still hit an old IP after you changed a record?**
+A: Resolvers cache until TTL expires (some ignore TTLs).
 
 ---
 

@@ -5,7 +5,7 @@
 ---
 
 ## 1. Physical clocks and why they lie
-- Each machine's quartz clock **drifts** (~10–100 ppm → seconds per day).
+- Each machine's quartz clock **drifts** (~10-100 ppm -> seconds per day).
 - **NTP** syncs clocks over the network; typical accuracy is a few ms in a data center, tens of ms over the internet.
 - Clocks can **jump backwards** after NTP correction, VM migration, leap seconds.
 - Never use wall-clock timestamps from different machines to decide order of critical events (e.g., Last-Write-Wins can silently drop the "later" write).
@@ -18,15 +18,15 @@ Each node keeps a counter `C`.
 - Before each local event: `C = C + 1`.
 - Send message with `C`.
 - On receive with timestamp `T`: `C = max(C, T) + 1`.
-Property: if A **happened-before** B then `L(A) < L(B)`. (Converse isn't true — can't detect concurrency.) Ties broken by node id → **total order** consistent with causality.
+Property: if A **happened-before** B then `L(A) < L(B)`. (Converse isn't true - can't detect concurrency.) Ties broken by node id -> **total order** consistent with causality.
 
 ---
 
 ## 3. Vector clocks
-Each node keeps a vector `[c1, c2, ..., cn]` — one counter per node.
+Each node keeps a vector `[c1, c2, ..., cn]` - one counter per node.
 - Local event: increment own entry.
 - Send: attach vector. Receive: element-wise max, then increment own entry.
-- Compare: `V(A) ≤ V(B)` element-wise → A happened before B. Neither ≤ the other → **concurrent** (conflict!).
+- Compare: `V(A) ≤ V(B)` element-wise -> A happened before B. Neither ≤ the other -> **concurrent** (conflict!).
 Used in Dynamo/Riak to detect conflicting writes ([Distributed Key-Value Store (Dynamo / Cassandra style)](../03-problems/03-key-value-store.md)). Downside: vector size grows with number of writers.
 
 ---
@@ -51,8 +51,8 @@ Combine physical time with a logical counter: stays close to wall-clock time (hu
 ---
 
 ## 5. Google TrueTime (Spanner)
-- GPS receivers + atomic clocks in every data center give time as an interval `[earliest, latest]` with bounded uncertainty ε (~1–7 ms).
-- **Commit wait**: Spanner waits out ε before making a commit visible → **external consistency** (global linearizability) using timestamps.
+- GPS receivers + atomic clocks in every data center give time as an interval `[earliest, latest]` with bounded uncertainty ε (~1-7 ms).
+- **Commit wait**: Spanner waits out ε before making a commit visible -> **external consistency** (global linearizability) using timestamps.
 
 ---
 
@@ -76,7 +76,7 @@ Combine physical time with a logical counter: stays close to wall-clock time (hu
 
 ---
 
-## 8. Interview cheat-sheet
+## 8. Points to mention in an interview
 - "We can't trust wall clocks across machines; ordering comes from a per-entity sequence or Snowflake ids."
 - "Vector clocks detect concurrent writes; LWW is simpler but may drop data."
 - "Spanner uses TrueTime with commit-wait for external consistency."

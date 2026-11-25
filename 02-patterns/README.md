@@ -1,6 +1,6 @@
-# System Design Patterns — Recognize the Shape, Reuse the Solution
+# System Design Patterns - Recognize the Shape, Reuse the Solution
 
-> Almost every interview problem is a combination of a handful of recurring patterns. Learn these 20 and most "new" problems become assembly work. Each pattern lists **the problem it solves, the solution, a diagram, when to use it, pitfalls, and where it appears** in this repo.
+Almost every interview problem is a combination of a handful of recurring patterns. Learn these 20 and most "new" problems become assembly work. Each pattern lists **the problem it solves, the solution, a diagram, when to use it, pitfalls, and where it appears** in this repo.
 
 | # | Pattern | Use it when... |
 |---|---|---|
@@ -22,7 +22,7 @@
 | 16 | [CQRS read models](#16-cqrs-read-models) | Read shapes differ from write shape |
 | 17 | [Event sourcing + snapshots](#17-event-sourcing--snapshots) | Auditable state (ledgers, exchanges) |
 | 18 | [Leader election + fencing](#18-leader-election--fencing) | Exactly one active worker/coordinator |
-| 19 | [Scatter–gather](#19-scattergather) | Query over sharded data |
+| 19 | [Scatter-gather](#19-scattergather) | Query over sharded data |
 | 20 | [Circuit breaker + bulkhead + retry with backoff](#20-circuit-breaker--bulkhead--retry-with-backoff) | Unreliable dependencies |
 | 21 | [Rate limiting / token bucket](#21-rate-limiting--token-bucket) | Protect services from overload & abuse |
 | 22 | [Write-ahead log + LSM storage](#22-write-ahead-log--lsm-storage) | Very high write throughput storage |
@@ -60,7 +60,7 @@ flowchart LR
     Q --> W2["Worker"]
     W1 -->|"fail N times"| DLQ["Dead letter queue"]
 ```
-**Pitfalls:** at-least-once → idempotent workers; monitor queue lag; autoscale on lag. **Seen in:** [Notifications](../03-problems/07-notification-system.md), [YouTube](../03-problems/11-youtube.md), [Code judge](../03-problems/37-online-code-judge.md), [Webhooks](../03-problems/47-webhook-delivery-service.md).
+**Pitfalls:** at-least-once -> idempotent workers; monitor queue lag; autoscale on lag. **Seen in:** [Notifications](../03-problems/07-notification-system.md), [YouTube](../03-problems/11-youtube.md), [Code judge](../03-problems/37-online-code-judge.md), [Webhooks](../03-problems/47-webhook-delivery-service.md).
 
 ## 4. Pre-signed direct upload + processing pipeline
 ```mermaid
@@ -116,7 +116,7 @@ stateDiagram-v2
 **Seen in:** [Ticketmaster](../03-problems/29-ticketmaster.md), [Airbnb](../03-problems/51-airbnb.md), [Flash sale](../03-problems/38-ecommerce-flash-sale.md).
 
 ## 9. Conditional update / optimistic concurrency
-`UPDATE t SET x = :new, version = version + 1 WHERE id = :id AND version = :old` → 0 rows = someone else won → retry or fail. Also `WHERE qty >= :n`, DynamoDB condition expressions, Redis `SET NX`. **Seen in:** [Hotel](../03-problems/19-hotel-reservation.md), [Uber](../03-problems/28-uber.md) (driver lock), [Auction](../03-problems/60-online-auction.md).
+`UPDATE t SET x = :new, version = version + 1 WHERE id = :id AND version = :old` -> 0 rows = someone else won -> retry or fail. Also `WHERE qty >= :n`, DynamoDB condition expressions, Redis `SET NX`. **Seen in:** [Hotel](../03-problems/19-hotel-reservation.md), [Uber](../03-problems/28-uber.md) (driver lock), [Auction](../03-problems/60-online-auction.md).
 
 ## 10. Virtual waiting room / admission control
 ```mermaid
@@ -150,7 +150,7 @@ flowchart LR
 **Seen in:** [Chat](../03-problems/09-chat-system.md), [Slack](../03-problems/58-slack.md), [Nearby friends](../03-problems/14-nearby-friends.md), [Live streaming chat](../03-problems/40-live-streaming.md).
 
 ## 15. Two-stage retrieval & ranking
-Cheap high-recall candidate generation (inverted index / ANN / rules) → expensive precise ranking on a few hundred → business re-ranking. **Seen in:** [Web search](../03-problems/36-web-search-engine.md), [Recommendations](../03-problems/43-recommendation-system.md), [Ad serving](../03-problems/57-ad-serving-rtb.md).
+Cheap high-recall candidate generation (inverted index / ANN / rules) -> expensive precise ranking on a few hundred -> business re-ranking. **Seen in:** [Web search](../03-problems/36-web-search-engine.md), [Recommendations](../03-problems/43-recommendation-system.md), [Ad serving](../03-problems/57-ad-serving-rtb.md).
 
 ## 16. CQRS read models
 Write model normalized in SQL; events/CDC build denormalized read models (search index, cache, materialized views). **Seen in:** [E-commerce](../03-problems/38-ecommerce-flash-sale.md), [Airbnb](../03-problems/51-airbnb.md).
@@ -161,7 +161,7 @@ Append-only events are the truth; state = replay; snapshots bound replay. **Seen
 ## 18. Leader election + fencing
 Lease from etcd/ZooKeeper; leader renews; token increases on each grant; storage rejects stale tokens. **Seen in:** [Lock service](../03-problems/44-distributed-lock-service.md), [Job scheduler](../03-problems/32-distributed-job-scheduler.md).
 
-## 19. Scatter–gather
+## 19. Scatter-gather
 ```mermaid
 flowchart LR
     Q["Query"] --> CO["Coordinator"]
@@ -170,7 +170,7 @@ flowchart LR
     CO --> S3["Shard 3"]
     S1 & S2 & S3 -->|"local top-K"| CO --> R["Merged result"]
 ```
-**Pitfall:** tail latency → hedged requests, timeouts, partial results. **Seen in:** [Web search](../03-problems/36-web-search-engine.md), [Leaderboard](../03-problems/22-gaming-leaderboard.md).
+**Pitfall:** tail latency -> hedged requests, timeouts, partial results. **Seen in:** [Web search](../03-problems/36-web-search-engine.md), [Leaderboard](../03-problems/22-gaming-leaderboard.md).
 
 ## 20. Circuit breaker + bulkhead + retry with backoff
 ```mermaid
@@ -187,7 +187,7 @@ Retries use exponential backoff + jitter and a retry budget; bulkheads give each
 Per-key buckets in Redis with atomic Lua; 429 + Retry-After. **Seen in:** [Rate limiter](../03-problems/01-rate-limiter.md).
 
 ## 22. Write-ahead log + LSM storage
-Commit log → memtable → SSTables → compaction; Bloom filters for reads. **Seen in:** [Key-value store](../03-problems/03-key-value-store.md), [Message queue](../03-problems/16-distributed-message-queue.md).
+Commit log -> memtable -> SSTables -> compaction; Bloom filters for reads. **Seen in:** [Key-value store](../03-problems/03-key-value-store.md), [Message queue](../03-problems/16-distributed-message-queue.md).
 
 ## 23. Consistent hashing / logical partitions
 Adding a node moves ~1/N keys; virtual nodes for balance. **Seen in:** [Consistent hashing](../03-problems/02-consistent-hashing.md), [Distributed cache](../03-problems/31-distributed-cache.md), [CDN](../03-problems/52-cdn.md).
@@ -203,7 +203,7 @@ A bug or overload in one cell affects only its users. **Seen in:** [Architecture
 
 ---
 
-## Problem → patterns quick map
+## Problem -> patterns quick map
 | Problem | Patterns |
 |---|---|
 | URL shortener / Pastebin | 1, 7, 23 |

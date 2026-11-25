@@ -1,15 +1,17 @@
 # 06 · Design a Web Crawler
 
-> **Category:** Batch / job processing · **Difficulty:** ⭐⭐⭐ · **Patterns:** BFS over a graph, URL frontier with priority & politeness queues, Bloom-filter dedupe, consistent hashing by host
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Batch / job processing | Medium | BFS over a graph, URL frontier with priority & politeness queues, Bloom-filter dedupe, consistent hashing by host |
 
 ---
 
-## 1. TL;DR
+## Summary
 Start from seed URLs, keep a **URL frontier** that balances **priority** (important pages first) and **politeness** (one connection per host, with delays). Workers download pages, parse them, drop **duplicate content** (hash / SimHash), extract links, filter and dedupe URLs (**Bloom filter**), and push new URLs back into the frontier. Partition the work by **hostname** across many crawler machines.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Crawl HTML pages for search indexing | **Scalable** (billions of pages, parallel) |
@@ -20,13 +22,13 @@ Start from seed URLs, keep a **URL frontier** that balances **priority** (import
 ### Estimates
 | Quantity | Value |
 |---|---|
-| Pages/month | 1 billion → **~400 pages/s**, peak ~800 |
-| Avg page | 500 KB → 500 TB/month |
+| Pages/month | 1 billion -> **~400 pages/s**, peak ~800 |
+| Avg page | 500 KB -> 500 TB/month |
 | 5-year storage | **~30 PB** |
 
 ---
 
-## 3. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -47,7 +49,7 @@ flowchart LR
 
 ---
 
-## 4. Crawl loop
+## Crawl loop
 ```mermaid
 sequenceDiagram
     participant F as Frontier
@@ -64,7 +66,7 @@ sequenceDiagram
 
 ---
 
-## 5. Deep dive: URL frontier
+## Deep dive: URL frontier
 
 ```mermaid
 flowchart TD
@@ -86,14 +88,14 @@ flowchart TD
 - **Freshness:** recrawl based on observed change rate and importance; use `If-Modified-Since`/ETag.
 
 ### BFS vs DFS
-The web is a directed graph. DFS can go infinitely deep; plain BFS ignores importance and hammers one host (pages link mostly to the same site) → hence the priority + politeness frontier.
+The web is a directed graph. DFS can go infinitely deep; plain BFS ignores importance and hammers one host (pages link mostly to the same site) -> hence the priority + politeness frontier.
 
 ---
 
-## 6. Other deep dives
+## Other deep dives
 | Topic | Approach |
 |---|---|
-| Distribute crawling | Assign hosts to crawler nodes via **consistent hashing on hostname** → politeness & caches stay local |
+| Distribute crawling | Assign hosts to crawler nodes via **consistent hashing on hostname** -> politeness & caches stay local |
 | DNS bottleneck | Local DNS cache, async resolvers |
 | Duplicate content (~30% of web) | Exact: hash of content; near-dup: **SimHash** fingerprints |
 | URL seen? at 10B URLs | **Bloom filter** (~12 GB at 1% FP) + normalize URLs (lowercase host, drop fragments/tracking params) |
@@ -105,20 +107,24 @@ The web is a directed graph. DFS can go infinitely deep; plain BFS ignores impor
 
 ---
 
-## 7. Storage
+## Storage
 - Raw pages: compressed blobs in object storage / Bigtable keyed by **reversed host** (`com.example.www/page`) to group a site's pages.
 - Metadata: URL, last crawl time, content hash, status code, next crawl time.
 
 ---
 
-## 8. Interview Q&A
-**Q: How do you stay polite?** Honour robots.txt and Crawl-delay, one in-flight request per host, delay between requests, back off on 429/503, identify via User-Agent.
+## Interview Q&A
+**Q: How do you stay polite?**
+A: Honour robots.txt and Crawl-delay, one in-flight request per host, delay between requests, back off on 429/503, identify via User-Agent.
 
-**Q: How do you avoid recrawling the same page under different URLs?** URL normalization + canonical tags + content hashing.
+**Q: How do you avoid recrawling the same page under different URLs?**
+A: URL normalization + canonical tags + content hashing.
 
-**Q: How would you prioritize?** PageRank/link popularity, site traffic, update frequency, freshness need (news > archives).
+**Q: How would you prioritize?**
+A: PageRank/link popularity, site traffic, update frequency, freshness need (news > archives).
 
-**Q: How do you scale to 10× pages?** More crawler nodes (hash by host), larger frontier on disk, more storage; DNS and Bloom filters partitioned per node.
+**Q: How do you scale to 10× pages?**
+A: More crawler nodes (hash by host), larger frontier on disk, more storage; DNS and Bloom filters partitioned per node.
 
 ---
 

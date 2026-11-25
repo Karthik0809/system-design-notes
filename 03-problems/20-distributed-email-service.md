@@ -1,15 +1,17 @@
 # 20 · Design a Distributed Email Service (Gmail / Outlook)
 
-> **Category:** Messaging + storage · **Difficulty:** ⭐⭐⭐⭐ · **Patterns:** SMTP pipeline with queues, per-user partitioned metadata, attachments in object storage, search index, real-time push
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Messaging + storage | Hard | SMTP pipeline with queues, per-user partitioned metadata, attachments in object storage, search index, real-time push |
 
 ---
 
-## 1. TL;DR
-Web/mobile clients talk HTTP to **web servers** and hold a **WebSocket** to real-time servers for new-mail push. Outgoing mail is validated, spam/virus-checked and queued for **SMTP workers**; incoming mail passes **SMTP servers → filters → storage**. Metadata is partitioned by **user_id** in a wide-column store, attachments in **object storage**, and a per-user **search index** supports full-text search.
+## Summary
+Web/mobile clients talk HTTP to **web servers** and hold a **WebSocket** to real-time servers for new-mail push. Outgoing mail is validated, spam/virus-checked and queued for **SMTP workers**; incoming mail passes **SMTP servers -> filters -> storage**. Metadata is partitioned by **user_id** in a wide-column store, attachments in **object storage**, and a per-user **search index** supports full-text search.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Send/receive email | 1B users; reliability (never lose mail) |
@@ -19,7 +21,7 @@ Web/mobile clients talk HTTP to **web servers** and hold a **WebSocket** to real
 
 ---
 
-## 3. Protocols
+## Protocols
 | Protocol | Purpose |
 |---|---|
 | **SMTP** | Send mail between servers |
@@ -29,7 +31,7 @@ Web/mobile clients talk HTTP to **web servers** and hold a **WebSocket** to real
 
 ---
 
-## 4. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -49,7 +51,7 @@ flowchart LR
 
 ---
 
-## 5. Send flow
+## Send flow
 ```mermaid
 sequenceDiagram
     participant U as User
@@ -66,13 +68,13 @@ sequenceDiagram
     S-->>W: bounce on permanent failure
 ```
 
-## 6. Receive flow
-SMTP incoming servers accept (with policy checks) → incoming queue → processing (spam/virus/filters) → store metadata/body/attachments → if recipient online, push via real-time server; else delivered on next fetch.
+## Receive flow
+SMTP incoming servers accept (with policy checks) -> incoming queue -> processing (spam/virus/filters) -> store metadata/body/attachments -> if recipient online, push via real-time server; else delivered on next fetch.
 
 ---
 
-## 7. Metadata storage
-Access pattern: "all emails of user X in folder Y, newest first", read/unread filters, conversation threads. Strongly tied to user → **partition by user_id** (wide-column / Bigtable-like).
+## Metadata storage
+Access pattern: "all emails of user X in folder Y, newest first", read/unread filters, conversation threads. Strongly tied to user -> **partition by user_id** (wide-column / Bigtable-like).
 
 ```
 emails_by_folder (user_id, folder_id, email_id TIMEUUID DESC, from, subject, preview, is_read)
@@ -83,7 +85,7 @@ Threads: group by `Message-ID` / `In-Reply-To` / `References` headers.
 
 ---
 
-## 8. Deep dives
+## Deep dives
 - **Search:** per-user index; Elasticsearch (with user-based routing) or a custom LSM-based index co-located with mail data (writes ≫ searches).
 - **Deliverability:** SPF, DKIM, DMARC, dedicated IP pools, IP warm-up, monitoring bounce/complaint rates.
 - **Consistency:** a single user's mailbox needs consistency (one primary per user partition); availability trade-offs during failover.
@@ -93,12 +95,15 @@ Threads: group by `Message-ID` / `In-Reply-To` / `References` headers.
 
 ---
 
-## 9. Interview Q&A
-**Q: Why queues for SMTP?** Remote servers are slow/unavailable; queues decouple user actions from delivery and allow retries for days.
+## Interview Q&A
+**Q: Why queues for SMTP?**
+A: Remote servers are slow/unavailable; queues decouple user actions from delivery and allow retries for days.
 
-**Q: Why not a relational DB for mailboxes?** Data size per user is large and growing; wide-column partitions by user scale horizontally with fast per-user range reads.
+**Q: Why not a relational DB for mailboxes?**
+A: Data size per user is large and growing; wide-column partitions by user scale horizontally with fast per-user range reads.
 
-**Q: How do you push new mail?** WebSocket to real-time servers (fallback long polling).
+**Q: How do you push new mail?**
+A: WebSocket to real-time servers (fallback long polling).
 
 ---
 

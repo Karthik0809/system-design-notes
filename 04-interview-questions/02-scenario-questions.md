@@ -1,11 +1,11 @@
 # Scenario & Troubleshooting Questions (with model answers)
 
-> Interviewers increasingly ask "what would you do if…" questions. A strong answer: **clarify → find the bottleneck with data → short-term mitigation → long-term fix → prevention.**
+Interviewers increasingly ask "what would you do if..." questions. A strong answer: **clarify -> find the bottleneck with data -> short-term mitigation -> long-term fix -> prevention.**
 
 ---
 
 ### 1. Your database CPU is at 100% and the site is slow. What do you do?
-- **Diagnose:** slow query log / `pg_stat_statements` → top queries by total time; check missing indexes, N+1 queries, lock contention, a recent deploy.
+- **Diagnose:** slow query log / `pg_stat_statements` -> top queries by total time; check missing indexes, N+1 queries, lock contention, a recent deploy.
 - **Mitigate now:** kill runaway queries, roll back the deploy, enable/raise caching, shed non-critical traffic, scale up if possible.
 - **Fix:** add indexes, rewrite queries, add read replicas for read traffic, cache hot reads, move analytics to a replica/warehouse.
 - **Prevent:** query reviews, load tests, alerts on DB saturation.
@@ -23,7 +23,7 @@ Fan-out storm. Switch the account to pull-based delivery (hybrid fan-out), queue
 Read-after-write inconsistency due to replica lag or stale cache. Read user's own profile from the primary for a short window after writes; invalidate cache on write (delete key); version-check cache entries.
 
 ### 6. Payments are occasionally charged twice.
-Retries without idempotency. Add idempotency keys on client → API → PSP; unique constraint on payment order ID; treat timeouts as unknown and query PSP status before retrying; reconcile daily.
+Retries without idempotency. Add idempotency keys on client -> API -> PSP; unique constraint on payment order ID; treat timeouts as unknown and query PSP status before retrying; reconcile daily.
 
 ### 7. Kafka consumer lag keeps growing.
 Consumers too slow or too few. Check processing time per message, downstream bottlenecks, poison messages (send to DLQ), rebalancing loops. Scale consumers (≤ partitions), increase partitions for future, batch processing, optimize downstream writes.
@@ -38,13 +38,13 @@ Timeouts, retries with backoff + jitter (idempotent calls only), circuit breaker
 Pre-scale (servers, DB replicas, caches), load-test, pre-warm caches/CDN, enable waiting room for the hot path, feature-flag off non-critical features, freeze deploys, staff on-call, prepare rollback and kill switches.
 
 ### 11. A region is going down. How do you fail over?
-Health checks fail → DNS/anycast routes traffic to healthy region(s); promote replicas there (accept RPO for async data); ensure capacity headroom; communicate status. Practice with game days.
+Health checks fail -> DNS/anycast routes traffic to healthy region(s); promote replicas there (accept RPO for async data); ensure capacity headroom; communicate status. Practice with game days.
 
 ### 12. Disk usage on log servers grows 30% per month.
 Retention tiers (7 days hot, then S3), compression, sampling of DEBUG logs, drop noisy logs, per-team quotas, move metrics-like logs to metrics.
 
 ### 13. Search results don't show newly added products for minutes.
-Indexing pipeline lag (CDC → Kafka → indexer → refresh interval). Check consumer lag, refresh interval, bulk sizes; for critical updates, write-through to the index or show "processing" state.
+Indexing pipeline lag (CDC -> Kafka -> indexer -> refresh interval). Check consumer lag, refresh interval, bulk sizes; for critical updates, write-through to the index or show "processing" state.
 
 ### 14. Your WebSocket servers can't be deployed without dropping users.
 Graceful drain: stop new connections, send reconnect hints, let clients reconnect with jitter to other servers, resync state by last message ID.
@@ -62,7 +62,7 @@ Set a strict timeout; fall back to popular/cached recommendations; render the pa
 Check cache hit ratio (cache key with random query params?), bigger media files (missing compression/resizing), bot traffic, hotlinking. Normalize cache keys, compress, resize, block abusive referrers.
 
 ### 19. How would you migrate a large table to a new schema with zero downtime?
-Expand/contract: add new columns/table → dual-write → backfill in batches → verify → switch reads → stop old writes → drop old structure. Use feature flags and keep rollback possible.
+Expand/contract: add new columns/table -> dual-write -> backfill in batches -> verify -> switch reads -> stop old writes -> drop old structure. Use feature flags and keep rollback possible.
 
 ### 20. How would you move from a monolith DB to sharded DBs live?
 Introduce a data access layer, pick shard key, copy data per shard with CDC catch-up, dual-read verification, cut over per tenant/range, keep reverse replication for rollback.

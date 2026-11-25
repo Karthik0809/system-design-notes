@@ -1,25 +1,27 @@
 # 51 · Design Airbnb (Listings Search & Booking)
 
-> **Category:** Geo search + booking · **Difficulty:** ⭐⭐⭐⭐ · **Patterns:** geo + date-availability search, availability calendar per listing, booking with holds, two-sided payments, search ranking
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Geo search + booking | Hard | geo + date-availability search, availability calendar per listing, booking with holds, two-sided payments, search ranking |
 
 ---
 
-## 1. TL;DR
+## Summary
 Hosts create **listings**; guests **search** by location + dates + guests + filters. Search uses an **Elasticsearch** geo index combined with an **availability index** (which listings are free on the requested nights). Booking reserves the nights in a **per-listing availability calendar** with an atomic conditional update, takes payment (authorize then capture), and pays out the host after check-in.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Host: create listing, set calendar & price | Search < 300 ms |
 | Guest: search by map area/city, dates, filters | No double booking |
 | Book (instant or request-to-book), pay, cancel | 7M listings, 100M searches/day, ~2M bookings/day |
-| Reviews, messaging host↔guest | Highly available search; consistent booking |
+| Reviews, messaging hostvsguest | Highly available search; consistent booking |
 
 ---
 
-## 3. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -38,7 +40,7 @@ flowchart LR
 
 ---
 
-## 4. Search flow
+## Search flow
 ```mermaid
 flowchart TD
     Q["Search: map bounds, dates, guests, filters"] --> G["Geo + filter query in Elasticsearch (bounding box / geohash)"]
@@ -47,11 +49,11 @@ flowchart TD
     P --> R["Rank: relevance, conversion probability, quality, price"]
     R --> O["Return page of listings + map pins"]
 ```
-Availability per listing as a **bitset of the next 365 nights** (46 bytes) → "free for nights d1..dn" is a fast bitmask check; kept in Redis or inside the search document (updated via events).
+Availability per listing as a **bitset of the next 365 nights** (46 bytes) -> "free for nights d1..dn" is a fast bitmask check; kept in Redis or inside the search document (updated via events).
 
 ---
 
-## 5. Booking flow
+## Booking flow
 ```mermaid
 sequenceDiagram
     participant G as Guest
@@ -70,22 +72,25 @@ Request-to-book: hold the nights with a TTL until the host accepts (24 h), relea
 
 ---
 
-## 6. Deep dives
-- **Calendar table:** `(listing_id, night) → status, price, booking_id` — shard by listing_id so a booking is a single-shard transaction.
-- **Calendar sync with other platforms** (iCal) — periodic import; conflicts resolved by blocking nights.
+## Deep dives
+- **Calendar table:** `(listing_id, night) -> status, price, booking_id` - shard by listing_id so a booking is a single-shard transaction.
+- **Calendar sync with other platforms** (iCal) - periodic import; conflicts resolved by blocking nights.
 - **Search ranking:** ML model predicting booking probability; diversity; new-listing boost.
 - **Pricing:** base + seasonal + length-of-stay discounts + fees + taxes; quote locked for checkout.
-- **Payments:** multi-currency, split payouts, refunds by cancellation policy — ledger as in [Payment system](23-payment-system.md).
+- **Payments:** multi-currency, split payouts, refunds by cancellation policy - ledger as in [Payment system](23-payment-system.md).
 - **Trust & safety:** identity verification, fraud scoring, review integrity.
 
 ---
 
-## 7. Interview Q&A
-**Q: How do you combine "near here" and "free on these dates"?** Geo/filters in the search index, then availability bitmask filter (or availability stored as nested field) before ranking.
+## Interview Q&A
+**Q: How do you combine "near here" and "free on these dates"?**
+A: Geo/filters in the search index, then availability bitmask filter (or availability stored as nested field) before ranking.
 
-**Q: How do you prevent double booking?** Atomic conditional update of all nights in one transaction on the listing's shard + idempotency keys.
+**Q: How do you prevent double booking?**
+A: Atomic conditional update of all nights in one transaction on the listing's shard + idempotency keys.
 
-**Q: Hotel reservation vs Airbnb?** Hotels sell many identical rooms per type (counter); Airbnb listings are unique units (per-night status).
+**Q: Hotel reservation vs Airbnb?**
+A: Hotels sell many identical rooms per type (counter); Airbnb listings are unique units (per-night status).
 
 ---
 

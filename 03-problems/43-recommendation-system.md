@@ -1,8 +1,10 @@
 # 43 · Design Recommendation System
 
-> **Category:** ML serving · **Difficulty:** ⭐⭐⭐⭐ · **Patterns:** candidate generation, ranking, feature store, ANN retrieval, A/B testing, cold start
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| ML serving | Hard | candidate generation, ranking, feature store, ANN retrieval, A/B testing, cold start |
 
-> Related: [Twitter (X)](26-twitter.md), [Instagram](27-instagram.md), [Web Search Engine](36-web-search-engine.md), Fundamentals → Batch & Stream Processing, Storage, Caching.
+Related: [Twitter (X)](26-twitter.md), [Instagram](27-instagram.md), [Web Search Engine](36-web-search-engine.md), Fundamentals -> Batch & Stream Processing, Storage, Caching.
 
 ---
 
@@ -30,24 +32,24 @@ flowchart LR
 
 ---
 
-## Step 1: Requirements
+## Requirements
 - **Functional:** personalised recommendations on home page ("Because you watched X"), similar items on item pages, refresh as user behaviour changes.
-- **Non-functional:** serve in < 100–200 ms; millions of users & items; fresh within minutes for session behaviour; A/B testable; handle cold start.
+- **Non-functional:** serve in < 100-200 ms; millions of users & items; fresh within minutes for session behaviour; A/B testable; handle cold start.
 
 ---
 
-## Step 2: The standard architecture — multi-stage funnel
+## The standard architecture - multi-stage funnel
 ```
 All items (100M) ─► Candidate generation (fast, recall) ─► ~1,000 candidates
                   ─► Filtering (already watched, unavailable, policy) ─► ~500
                   ─► Ranking (heavy ML model, precision) ─► top ~50 scored
                   ─► Re-ranking (diversity, freshness, business rules, ads) ─► final 20
 ```
-You can't run an expensive model on 100M items per request → narrow down in stages.
+You can't run an expensive model on 100M items per request -> narrow down in stages.
 
 ### Candidate generation sources (union of several)
 - **Collaborative filtering**: users who liked X also liked Y (item-item similarity); matrix factorisation.
-- **Two-tower embedding model**: user tower & item tower → embeddings; **ANN search** (FAISS/ScaNN/HNSW in a vector DB) for nearest items to the user embedding.
+- **Two-tower embedding model**: user tower & item tower -> embeddings; **ANN search** (FAISS/ScaNN/HNSW in a vector DB) for nearest items to the user embedding.
 - **Content-based**: similar genre/text/image embeddings.
 - **Popular / trending** in user's region (cold start).
 - **Social / graph-based**: what friends engaged with.
@@ -57,7 +59,7 @@ Gradient-boosted trees or deep models predicting P(click), P(watch > 30s), expec
 
 ---
 
-## Step 3: System components
+## System components
 ```
             ┌───────── Offline (batch, daily) ─────────┐
 Event logs ─► Data lake ─► Feature pipelines ─► Training (Spark/TF/PyTorch) ─► Model registry
@@ -75,7 +77,7 @@ Request ─► Rec Service ─► candidate generators (ANN index, CF tables, tr
 ```
 
 ### Feature store
-Same feature definitions for training (offline store, historical, point-in-time correct) and serving (online store, low latency) → avoids **training/serving skew**.
+Same feature definitions for training (offline store, historical, point-in-time correct) and serving (online store, low latency) -> avoids **training/serving skew**.
 
 ### Precompute vs real-time
 - Precompute recommendations for all users nightly (cheap serving, stale).
@@ -84,29 +86,29 @@ Same feature definitions for training (offline store, historical, point-in-time 
 
 ---
 
-## Step 4: Feedback loop & evaluation
-- Log impressions, clicks, watch time → training labels.
+## Feedback loop & evaluation
+- Log impressions, clicks, watch time -> training labels.
 - **Offline metrics**: precision@K, recall@K, NDCG, AUC.
-- **Online A/B tests**: CTR, watch time, retention — the real judge.
-- Beware feedback loops/popularity bias → exploration (bandits, inject diverse items).
+- **Online A/B tests**: CTR, watch time, retention - the real judge.
+- Beware feedback loops/popularity bias -> exploration (bandits, inject diverse items).
 
 ---
 
-## Step 5: Cold start
+## Cold start
 - **New user**: popular/trending, onboarding questions, context (country, device), quickly adapt with session events.
 - **New item**: content-based embeddings (metadata, text, thumbnail), boosted exploration slots.
 
 ---
 
-## Step 6: Scaling notes
+## Scaling notes
 - ANN indexes sharded & replicated, rebuilt periodically with incremental updates.
 - Model servers on GPUs/CPUs autoscaled; batch requests.
-- Timeouts per stage with fallbacks (if ranking times out → return candidates ordered by popularity).
+- Timeouts per stage with fallbacks (if ranking times out -> return candidates ordered by popularity).
 
 ---
 
-## Interview wrap-up
-- Multi-stage funnel: **candidate generation → filtering → ranking → re-ranking**.
+## Points to mention in an interview
+- Multi-stage funnel: **candidate generation -> filtering -> ranking -> re-ranking**.
 - Two-tower embeddings + ANN for retrieval; heavy model for ranking.
 - Offline/nearline/online layers with a feature store.
 - A/B testing, feedback loops, cold-start strategies.

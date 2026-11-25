@@ -1,24 +1,26 @@
 # 10 · Design Search Autocomplete (Typeahead)
 
-> **Category:** Ranking / read-heavy · **Difficulty:** ⭐⭐⭐ · **Patterns:** trie with cached top-K, offline aggregation pipeline, sharding by prefix, client debouncing & caching
+| Category | Difficulty | Key ideas |
+|---|---|---|
+| Ranking / read-heavy | Medium | trie with cached top-K, offline aggregation pipeline, sharding by prefix, client debouncing & caching |
 
 ---
 
-## 1. TL;DR
+## Summary
 Serve suggestions from an in-memory **trie** where every node stores its **top-K most frequent queries**, so a lookup is just "walk the prefix, return the cached list". Build the trie **offline** (daily/weekly) from aggregated query logs, and add a small **real-time layer** for trending queries. Clients debounce keystrokes and cache responses.
 
 ---
 
-## 2. Requirements
+## Requirements
 | Functional | Non-functional |
 |---|---|
 | Return top 5 suggestions for a prefix | Latency < 100 ms |
-| Ranked by popularity | 10M DAU × 10 searches × ~20 keystrokes → **~24K QPS**, peak ~48K |
+| Ranked by popularity | 10M DAU × 10 searches × ~20 keystrokes -> **~24K QPS**, peak ~48K |
 | Lowercase English (extensible) | Highly available |
 
 ---
 
-## 3. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -37,7 +39,7 @@ flowchart LR
 
 ---
 
-## 4. The trie with cached top-K
+## The trie with cached top-K
 
 ```mermaid
 flowchart TD
@@ -51,14 +53,14 @@ flowchart TD
 ```
 | Step | Without cache | With cached top-K |
 |---|---|---|
-| Find prefix node | O(p) | O(p) — p capped at ~50 chars |
+| Find prefix node | O(p) | O(p) - p capped at ~50 chars |
 | Collect & sort completions | O(c log c) over whole subtree | **O(1)** |
 
 Trade-off: more memory (each node stores K entries) for constant-time answers.
 
 ---
 
-## 5. Query flow
+## Query flow
 ```mermaid
 sequenceDiagram
     participant B as Browser
@@ -74,10 +76,10 @@ sequenceDiagram
 
 ---
 
-## 6. Deep dives
-- **Building data:** aggregate logs per week with time decay (recent searches weigh more) → rebuild trie → serialize → swap in (blue/green).
-- **Trie storage:** serialized snapshots in object storage, or a KV store `prefix → top-K list` (also usable directly as the serving format).
-- **Sharding:** by first letters, but letters are uneven (`s` ≫ `x`) → use a **shard map** built from historical distribution (`a-ba`, `bb-c`, …).
+## Deep dives
+- **Building data:** aggregate logs per week with time decay (recent searches weigh more) -> rebuild trie -> serialize -> swap in (blue/green).
+- **Trie storage:** serialized snapshots in object storage, or a KV store `prefix -> top-K list` (also usable directly as the serving format).
+- **Sharding:** by first letters, but letters are uneven (`s` ≫ `x`) -> use a **shard map** built from historical distribution (`a-ba`, `bb-c`, ...).
 - **Trending:** stream processing counts queries in sliding windows; hot prefixes are blended in with extra weight.
 - **Filtering:** remove hateful/unsafe suggestions at query time and in next build.
 - **Personalization:** merge user's own recent searches and location-based suggestions.
@@ -85,14 +87,18 @@ sequenceDiagram
 
 ---
 
-## 7. Interview Q&A
-**Q: Why not query the DB with `LIKE 'tr%'`?** Too slow at 50K QPS and needs sorting by frequency each time.
+## Interview Q&A
+**Q: Why not query the DB with `LIKE 'tr%'`?**
+A: Too slow at 50K QPS and needs sorting by frequency each time.
 
-**Q: How fresh are suggestions?** Base trie: daily/weekly; trending overlay: minutes.
+**Q: How fresh are suggestions?**
+A: Base trie: daily/weekly; trending overlay: minutes.
 
-**Q: How to reduce QPS?** Client debounce, browser caching, CDN caching of popular prefixes, only query after 2 chars.
+**Q: How to reduce QPS?**
+A: Client debounce, browser caching, CDN caching of popular prefixes, only query after 2 chars.
 
-**Q: How do you update the trie without downtime?** Build a new version offline, load it on new instances, switch traffic, discard old.
+**Q: How do you update the trie without downtime?**
+A: Build a new version offline, load it on new instances, switch traffic, discard old.
 
 ---
 
