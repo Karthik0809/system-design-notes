@@ -2,7 +2,7 @@
 
 | Category | Difficulty | Key ideas |
 |---|---|---|
-| Event matching + notifications | Medium | inverted matching (price → alerts), sorted thresholds per symbol, stream processing, dedupe & idempotent notifications |
+| Event matching + notifications | Medium | inverted matching (price -> alerts), sorted thresholds per symbol, stream processing, dedupe & idempotent notifications |
 
 ---
 

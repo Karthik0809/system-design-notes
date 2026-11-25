@@ -117,7 +117,7 @@ Pre-compute random unique keys into an `unused_keys` table; each app server grab
 
 ---
 
-## 301 vs 302
+## vs 302
 | 301 Permanent | 302 Temporary |
 |---|---|
 | Browser caches -> fewer hits to us | Every click reaches us |

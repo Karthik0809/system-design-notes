@@ -14,7 +14,7 @@ Diagrams are written in [Mermaid](https://mermaid.js.org/), so GitHub renders th
 
 | Folder | What is inside |
 |---|---|
-| [01-fundamentals](01-fundamentals/) | 28 notes on the concepts every design builds on |
+| [01-fundamentals](01-fundamentals/) | 35 notes on the concepts every design builds on |
 | [02-patterns](02-patterns/README.md) | 24 reusable design patterns, each with a diagram and examples |
 | [03-problems](03-problems/) | 68 high-level design problems, worked end to end |
 | [04-interview-questions](04-interview-questions/) | Concept Q&A, scenario questions, estimation drills, quick designs |
@@ -32,10 +32,12 @@ flowchart LR
 
 | Week | Focus | Material |
 |---|---|---|
-| 1 | Foundations | Fundamentals 21-23 (scaling, estimation, interview framework), then 01-08 |
-| 2 | Distributed systems | Fundamentals 09-20 and 24-27, the [patterns](02-patterns/README.md) page |
+| 1 | Foundations | Fundamentals 28 (clients and servers), 21-23 (scaling, estimation, interview framework), then 01-08 |
+| 2 | Distributed systems | Fundamentals 09-20, 24-27 and 29-32 (back-pressure, failover, multi-region, trade-offs), the [patterns](02-patterns/README.md) page |
 | 3 | Classic problems | URL shortener, rate limiter, news feed, chat, YouTube, Google Drive, Uber, Ticketmaster, payments |
 | 4 | Breadth and mocks | Remaining problems by category, [scenario questions](04-interview-questions/02-scenario-questions.md), timed 45-minute mocks |
+
+Front-end rounds: add fundamentals 33-34 (front-end performance and state).
 
 Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-and-problem-patterns.md), the [framework](01-fundamentals/23-interview-framework.md) and the [patterns](02-patterns/README.md), then pick problems from your target company's domain.
 
@@ -71,6 +73,13 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 - [Serialization Formats and Schema Evolution](01-fundamentals/25-serialization-and-schema-evolution.md)
 - [Concurrency Models and Connection Handling](01-fundamentals/26-concurrency-and-connection-handling.md)
 - [Multi-Tenancy and Data Modeling](01-fundamentals/27-multi-tenancy-and-data-modeling.md)
+- [Clients and Servers](01-fundamentals/28-client-server-basics.md)
+- [Back-Pressure](01-fundamentals/29-back-pressure.md)
+- [Availability and Failover](01-fundamentals/30-availability-and-failover.md)
+- [Multi-Region Design](01-fundamentals/31-multi-region-design.md)
+- [Making and Defending Trade-offs](01-fundamentals/32-making-trade-offs.md)
+- [Front-End Performance](01-fundamentals/33-front-end-performance.md)
+- [Front-End State](01-fundamentals/34-front-end-state.md)
 
 ---
 
@@ -81,7 +90,6 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 ---
 
 ## 3. Problems
-
 
 ### Building blocks and infrastructure
 
@@ -170,7 +178,7 @@ Short on time: read the [cheat sheet](01-fundamentals/00-interview-cheat-sheet-a
 | 23 | [Payment System (e-commerce checkout)](03-problems/23-payment-system.md) | Very hard | PSP integration via hosted page, idempotency keys, double-entry ledger, async processing, retries/DLQ, reconciliation |
 | 24 | [Digital Wallet (balance transfers at 1M TPS)](03-problems/24-digital-wallet.md) | Very hard | sharded balances, distributed transactions (2PC / TCC / Saga), event sourcing, CQRS, Raft-replicated state machines |
 | 25 | [Stock Exchange (matching engine)](03-problems/25-stock-exchange.md) | Very hard | order book, price-time priority matching, sequencer, deterministic replay, single-threaded hot path, mmap event store |
-| 54 | [Price Alert System (stock / crypto / flight price alerts)](03-problems/54-price-alerts.md) | Medium | inverted matching (price → alerts), sorted thresholds per symbol, stream processing, dedupe & idempotent notifications |
+| 54 | [Price Alert System (stock / crypto / flight price alerts)](03-problems/54-price-alerts.md) | Medium | inverted matching (price -> alerts), sorted thresholds per symbol, stream processing, dedupe & idempotent notifications |
 | 55 | [Real-Time Fraud Detection System (payments)](03-problems/55-fraud-detection.md) | Hard | synchronous risk scoring with tight latency budget, real-time features from streams, rules + ML, feedback loops, case management |
 
 ### Data pipelines, analytics and observability
